@@ -461,7 +461,7 @@ module SegmentedArray {
     }
 
     /*
-    Returns Regexp.compile if pattern can be compiled without an error
+      Returns Regexp.compile if pattern can be compiled without an error
     */
     proc checkCompile(const pattern: string) throws {
       try {
@@ -482,6 +482,107 @@ module SegmentedArray {
       // It is only called after checkCompile so the try! will not result in a server crash
       return try! compile(pattern);
     }
+
+    /*
+      Given a SegString, return a new SegString only containing matches of the regex pattern,
+      If returnMatchOrig is set to True, return a pdarray containing the index of the original string each pattern match is from
+      Note: the regular expression engine used, re2, does not support lookahead/lookbehind
+      :arg numMatchesEntry: for each string in SegString, the number of pattern matches
+      :type numMatchesEntry: borrowed SymEntry(int)
+      :arg startsEntry: for each string in SegString, the starting postions of pattern matches
+      :type startsEntry: borrowed SymEntry(int)
+      :arg lensEntry: for each string in SegString, the lengths of pattern matches
+      :type lensEntry: borrowed SymEntry(int)
+      :arg returnMatchOrig: If True, return a pdarray containing the index of the original string each pattern match is from
+      :type returnMatchOrig: bool
+      :returns: Strings – Only the portions of Strings which match pattern and (optional) int64 pdarray – For each pattern match, the index of the original string it was in
+    */
+    proc sliceMatches(const numMatchesEntry: borrowed SymEntry(int), const startsEntry: borrowed SymEntry(int), const lensEntry: borrowed SymEntry(int), const returnMatchOrig: bool) throws {
+      ref origVals = this.values.a;
+      ref numMatches = numMatchesEntry.a;
+      ref matchStarts = startsEntry.a;
+      ref matchLens = lensEntry.a;
+
+      overMemLimit((matchLens.size * numBytes(uint(8))) + (2 * matchLens.size * numBytes(int)));
+
+      var slicedVals: [makeDistDom((+ reduce matchLens) + matchLens.size)] uint(8);
+      var slicedOffsets: [makeDistDom(matchLens.size)] int;
+
+      // + current index to account for null bytes
+      var slicedIndicies = + scan matchLens - matchLens + lensEntry.aD;
+
+      forall (i, start, len, sliceInd) in zip(lensEntry.aD, matchStarts, matchLens, slicedIndicies) with (var valAgg = newDstAggregator(uint(8)), var offAgg = newDstAggregator(int)) {
+        for j in 0..#len {
+          valAgg.copy(slicedVals[sliceInd + j], origVals[start + j]);
+        }
+        valAgg.copy(slicedVals[sliceInd + len], 0:uint(8));
+        if i == 0 {
+          offAgg.copy(slicedOffsets[i], 0);
+        }
+        if i != lensEntry.aD.high {
+        offAgg.copy(slicedOffsets[i+1], sliceInd + len + 1);
+        }
+      }
+
+      // build matchOrigins mapping from slicedStrings (pattern matches) to the original Strings they were found in
+      const matchOriginsDom = if returnMatchOrig then makeDistDom(slicedOffsets.size) else makeDistDom(0);
+      var matchOrigins: [matchOriginsDom] int;
+      if returnMatchOrig {
+        // check there's enough room to create a copy for scan and throw if creating a copy would go over memory limit
+        overMemLimit(numBytes(int) * numMatches.size);
+        var originIndicies = (+ scan numMatches) - numMatches;
+        forall (stringInd, originInd) in zip(this.offsets.aD, originIndicies) with (var originAgg = newDstAggregator(int)) {
+          for k in 0..#numMatches[stringInd] {
+            // Each string has numMatches[stringInd] number of pattern matches, so matchOrigins needs to repeat stringInd for numMatches[stringInd] times
+            originAgg.copy(matchOrigins[originInd + k], stringInd);
+          }
+        }
+      }
+      return (slicedOffsets, slicedVals, matchOrigins);
+    }
+
+    /*
+      Given a SegString, finds pattern matches and returns pdarrays containing the number, start postitions, and lengths of matches
+      Note: the regular expression engine used, re2, does not support lookahead/lookbehind
+      :arg pattern: for each string in SegString, the number of pattern matches
+      :type pattern: string
+      :returns: int64 pdarray – For each original string, the number of pattern matches and int64 pdarray – The start positons of pattern matches and int64 pdarray – The lengths of pattern matches
+    */
+    proc findMatches(const pattern: string) throws {
+      checkCompile(pattern);
+      ref origOffsets = this.offsets.a;
+      ref origVals = this.values.a;
+      const lengths = this.getLengths();
+
+      overMemLimit(this.offsets.size * numBytes(int));
+      var numMatches: [this.offsets.aD] int;
+      var matchStart: [this.values.aD] bool = false;
+      var lenPos: [this.values.aD] int;
+
+      forall (i, off, len) in zip(this.offsets.aD, origOffsets, lengths) with (var myRegex = _unsafeCompileRegex(pattern),
+                                                                               var lenAgg = newDstAggregator(int),
+                                                                               var startAgg = newDstAggregator(bool),
+                                                                               var matchAgg = newDstAggregator(int)) {
+        var matches = myRegex.matches(interpretAsString(origVals[off..#len]));
+        for m in matches {
+          var match: reMatch = m[0];
+          lenAgg.copy(lenPos[off + match.offset:int], match.size);
+          startAgg.copy(matchStart[off + match.offset:int], true);
+        }
+        matchAgg.copy(numMatches[i], matches.size);
+      }
+      var totalMatches = + reduce numMatches;
+      var matchTransform = + scan matchStart - matchStart;
+
+      var matchStarts: [makeDistDom(totalMatches)] int;
+      var matchLens: [makeDistDom(totalMatches)] int;
+      [i in this.values.aD] if (matchStart[i] == true) {
+        matchStarts[matchTransform[i]] = i;
+        matchLens[matchTransform[i]] = lenPos[i];
+      }
+      return (numMatches, matchStarts, matchLens);
+    }
+
 
     /*
       Returns list of bools where index i indicates whether the regular expression, pattern, matched string i of the SegString
