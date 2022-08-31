@@ -34,7 +34,7 @@ module IndexingMsg
     }
 
     proc arrayViewMixedIndexMsg(cmd: string, payload: string, st: borrowed SymTab): MsgTuple throws {
-        var msgArgs = parseMessageArgs(payload, 5);
+        var msgArgs = parseMessageArgs(payload, 6);
         var ndim = msgArgs.get("ndim").getIntValue();
         const pdaName = msgArgs.getValueOf("base");
         const indexDimName = msgArgs.getValueOf("index_dim");
@@ -49,37 +49,37 @@ module IndexingMsg
         var indexDimEntry = toSymEntry(indexDim, int);
         ref dims = indexDimEntry.a;
 
-        // String array containing the type of the following value at even indicies then the value ex. ["int", "7", "slice", "(0,5,-1)", "pdarray", "id_4"]
-        var typeCoords: [0..#(ndim*2)] string = msgArgs.get("coords").getList(ndim*2);
+        var types: [0..#ndim] string = msgArgs.get("types").getList(ndim);
+        var coords: [0..#ndim] string = msgArgs.get("coords").getList(ndim);
 
         var scaledCoords: [makeDistDom(+ reduce dims)] int;
         // check there's enough room to create a copy for scan and throw if creating a copy would go over memory limit
         overMemLimit(numBytes(int) * dims.size);
         var offsets = (+ scan dims) - dims;
 
-        forall i in 0..#typeCoords.size by 2 {
-            select typeCoords[i] {
+        forall (i, t, c) in zip(0..#ndim, types, coords) {
+            select t {
                 when "int" {
-                    scaledCoords[offsets[i/2]] = typeCoords[i+1]:int * dimProdEntry.a[i/2];
+                    scaledCoords[offsets[i]] = c:int * dimProdEntry.a[i];
                 }
                 when "slice" {
-                    var (start, stop, stride) = jsonToTuple(typeCoords[i+1], 3*int);
+                    var (start, stop, stride) = jsonToTuple(c, 3*int);
                     var slice: range(stridable=true) = convertSlice(start, stop, stride);
-                    var scaled: [0..#slice.size] int = slice * dimProdEntry.a[i/2];
+                    var scaled: [0..#slice.size] int = slice * dimProdEntry.a[i];
                     for j in 0..#slice.size {
-                        scaledCoords[offsets[i/2]+j] = scaled[j];
+                        scaledCoords[offsets[i]+j] = scaled[j];
                     }
                 }
                 // Advanced indexing not yet supported
                 // when "pdarray" {
                 //     // TODO if bool array convert to int array by doing arange(len)[bool_array]
-                //     var arrName: string = typeCoords[i+1];
+                //     var arrName: string = c;
                 //     var indArr: borrowed GenSymEntry = getGenericTypedArrayEntry(arrName, st);
                 //     var indArrEntry = toSymEntry(indArr, int);
-                //     var scaledArray = indArrEntry.a * dimProdEntry.a[i/2];
-                //     // var localizedArray = new lowLevelLocalizingSlice(scaledArray, offsets[i/2]..#indArrEntry.a.size);
+                //     var scaledArray = indArrEntry.a * dimProdEntry.a[i];
+                //     // var localizedArray = new lowLevelLocalizingSlice(scaledArray, offsets[i]..#indArrEntry.a.size);
                 //     forall (j, s) in zip(indArrEntry.aD, scaledArray) with (var DstAgg = newDstAggregator(int)) {
-                //         DstAgg.copy(scaledCoords[offsets[i/2]+j], s);
+                //         DstAgg.copy(scaledCoords[offsets[i]+j], s);
                 //     }
                 // }
             }

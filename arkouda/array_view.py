@@ -159,21 +159,21 @@ class ArrayView:
             fields = repMsg.split()
             return parse_single_value(" ".join(fields[1:]))
         elif isinstance(key, list):
-            indices = []
+            types = []
+            coords = []
             reshape_dim_list = []
             index_dim_list = []
             key = key if self.order is OrderType.COLUMN_MAJOR else key[::-1]
-            for i in range(len(key)):
-                x = key[i]
+            for i, x in enumerate(key):
                 if np.isscalar(x) and (resolve_scalar_dtype(x) in ["int64", "uint64"]):
                     orig_key = x
                     if x < 0:
                         # Interpret negative key as offset from end of array
                         x += self._reverse_shape[i]
                     if 0 <= x < self._reverse_shape[i]:
-                        indices.append("int")
+                        types.append("int")
                         # have to cast to int because JSON doesn't recognize numpy dtypes
-                        indices.append(json.dumps(int(x)))
+                        coords.append(json.dumps(int(x)))
                         index_dim_list.append(1)
                     else:
                         raise IndexError(
@@ -182,21 +182,31 @@ class ArrayView:
                         )
                 elif isinstance(x, slice):
                     (start, stop, stride) = x.indices(self._reverse_shape[i])
-                    indices.append("slice")
-                    indices.append(json.dumps((start, stop, stride)))
+                    types.append("slice")
+                    coords.append(json.dumps((start, stop, stride)))
                     slice_size = len(range(*(start, stop, stride)))
                     index_dim_list.append(slice_size)
                     reshape_dim_list.append(slice_size)
                 elif isinstance(x, pdarray) or isinstance(x, list):
                     raise TypeError(f"Advanced indexing is not yet supported {x} ({type(x)})")
+                    # if bool
+                    # if there are integer arrays present:
+                    #     treat as integer special array (i.e. indices where non-zero):
+                    #     [i for i,k in enumerate(b2) if k!=0]
+                    # elif has the same shape as self:
+                    #     select only indices where true in flattened array
+                    # else if shape differs:
+                    #     act as if we are [b, ...], i.e. index by b followed by as many ':' as are needed
+                    #     to fill out the rank of x
+
                     # x = array(x)
                     # kind, _ = translate_np_dtype(x.dtype)
                     # if kind not in ("bool", "int"):
                     #     raise TypeError("unsupported pdarray index type {}".format(x.dtype))
                     # if kind == "bool" and dim != x.size:
                     #     raise ValueError("size mismatch {} {}".format(dim, x.size))
-                    # indices.append('pdarray')
-                    # indices.append(x.name)
+                    # types.append('pdarray')
+                    # coords.append(x.name)
                     # index_dim_list.append(x.size)
                     # reshape_dim_list.append(x.size)
                     # arrays.append(x)
@@ -210,7 +220,8 @@ class ArrayView:
                     "index_dim": index_dim,
                     "ndim": self.ndim,
                     "dim_prod": self._dim_prod,
-                    "coords": indices,
+                    "types": types,
+                    "coords": coords,
                 },
             )
             reshape_dim = (
