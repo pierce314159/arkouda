@@ -15,6 +15,7 @@ module IndexingMsg
 
     use FileIO;
     use List;
+    use BinOp;
 
     use Map;
 
@@ -34,11 +35,18 @@ module IndexingMsg
     }
 
     proc arrayViewMixedIndexMsg(cmd: string, payload: string, st: borrowed SymTab): MsgTuple throws {
-        var msgArgs = parseMessageArgs(payload, 6);
+        var msgArgs = parseMessageArgs(payload, 12);
         var ndim = msgArgs.get("ndim").getIntValue();
         const pdaName = msgArgs.getValueOf("base");
         const indexDimName = msgArgs.getValueOf("index_dim");
         const dimProdName = msgArgs.getValueOf("dim_prod");
+        const userDimProdName = msgArgs.getValueOf("user_dim_prod");
+        const reshapeDimName = msgArgs.getValueOf("reshape_dim");
+        const advancedName = msgArgs.getValueOf("advanced");
+        const advancedLen = msgArgs.get("advanced_len").getIntValue();
+        const isNonConsecutive = msgArgs.get("is_non_consecutive").getBoolValue();
+        const retsize = msgArgs.get("ret_size").getIntValue();
+
         imLogger.debug(getModuleName(),getRoutineName(),getLineNumber(),
                                                     "%s %s %i %s %s".format(cmd, pdaName, ndim, dimProdName, msgArgs.getValueOf("coords")));
 
@@ -48,7 +56,14 @@ module IndexingMsg
         var indexDim: borrowed GenSymEntry = getGenericTypedArrayEntry(indexDimName, st);
         var indexDimEntry = toSymEntry(indexDim, int);
         ref dims = indexDimEntry.a;
-
+        
+        var userDimProdEntry = toSymEntry(getGenericTypedArrayEntry(userDimProdName, st), int);
+        ref userDimProd = userDimProdEntry.a;
+        var reshapeDimEntry = toSymEntry(getGenericTypedArrayEntry(reshapeDimName, st), bool);
+        ref reshapeDim = reshapeDimEntry.a;
+        var advancedEntry = toSymEntry(getGenericTypedArrayEntry(advancedName, st), bool);
+        ref advanced = advancedEntry.a;
+    
         var types: [0..#ndim] string = msgArgs.get("types").getList(ndim);
         var coords: [0..#ndim] string = msgArgs.get("coords").getList(ndim);
 
@@ -71,24 +86,29 @@ module IndexingMsg
                     }
                 }
                 // Advanced indexing not yet supported
-                // when "pdarray" {
-                //     // TODO if bool array convert to int array by doing arange(len)[bool_array]
-                //     var arrName: string = c;
-                //     var indArr: borrowed GenSymEntry = getGenericTypedArrayEntry(arrName, st);
-                //     var indArrEntry = toSymEntry(indArr, int);
-                //     var scaledArray = indArrEntry.a * dimProdEntry.a[i];
-                //     // var localizedArray = new lowLevelLocalizingSlice(scaledArray, offsets[i]..#indArrEntry.a.size);
-                //     forall (j, s) in zip(indArrEntry.aD, scaledArray) with (var DstAgg = newDstAggregator(int)) {
-                //         DstAgg.copy(scaledCoords[offsets[i]+j], s);
-                //     }
-                // }
+                when "pdarray" {
+                    // TODO if bool array convert to int array by doing arange(len)[bool_array]
+                    var arrName: string = c;
+                    var indArr: borrowed GenSymEntry = getGenericTypedArrayEntry(arrName, st);
+                    var indArrEntry = toSymEntry(indArr, int);
+                    var scaledArray = indArrEntry.a * dimProdEntry.a[i];
+                    // var localizedArray = new lowLevelLocalizingSlice(scaledArray, offsets[i]..#indArrEntry.a.size);
+                    // forall (j, s) in zip(indArrEntry.aD, scaledArray) with (var DstAgg = newDstAggregator(int)) {
+                    for (j, s) in zip(indArrEntry.aD, scaledArray) {
+                        // DstAgg.copy(scaledCoords[offsets[i]+j], s);
+                        scaledCoords[offsets[i]+j] = s;
+                    }
+                }
             }
         }
 
         // create full index list
         // get next symbol name
         var indiciesName = st.nextName();
-        var indicies = st.addEntry(indiciesName, * reduce dims, int);
+        // var iv = + scan reshapeDim;
+        // var other: [0..#(+ reduce reshapeDim)] int;
+        // [i in indexDimEntry.aD] if (reshapeDim[i]) {other[iv[i]-1] = dims[i];}
+        var indicies = st.addEntry(indiciesName, retsize, int);
 
         imLogger.debug(getModuleName(),getRoutineName(),getLineNumber(), "rname = %s".format(indiciesName));
 
@@ -97,21 +117,46 @@ module IndexingMsg
         if & reduce (dims!=0) {
             // check there's enough room to create a copy for scan and throw if creating a copy would go over memory limit
             overMemLimit(numBytes(int) * dims.size);
-            var dim_prod = (* scan(dims)) / dims;
+            // var dim_prod = (* scan(dims)) / dims;
 
-            recursiveIndexCalc(0,0,0);
-            proc recursiveIndexCalc(depth: int, ind:int, sum:int) throws {
-                for j in 0..#dims[depth] {
-                    imLogger.debug(getModuleName(),getRoutineName(),getLineNumber(), "depth = %i".format(depth));
-                    imLogger.debug(getModuleName(),getRoutineName(),getLineNumber(), "j = %i".format(j));
-                    imLogger.debug(getModuleName(),getRoutineName(),getLineNumber(), "SUM: sum + scaledCoords[offsets[depth]+j] = %i".format(sum + scaledCoords[offsets[depth]+j]));
-                    imLogger.debug(getModuleName(),getRoutineName(),getLineNumber(), "IND: ind + j*dim_prod[depth] = %i".format(ind+(j*dim_prod[depth])));
-
-                    if depth == ndim-1 then indicies.a[ind+(j*dim_prod[depth])] = sum+scaledCoords[offsets[depth]+j];
-                    else recursiveIndexCalc(depth+1, ind+(j*dim_prod[depth]), sum+scaledCoords[offsets[depth]+j]);
+            recursiveIndexCalc(0,0,0,-1);
+            proc recursiveIndexCalc(depth:int, ind:int, sum:int, advancedInd:int) throws {
+                if !advanced[depth] || advancedInd == -1 {
+                    for j in 0..#dims[depth] {
+                        imLogger.debug(getModuleName(),getRoutineName(),getLineNumber(), "depth = %i".format(depth));
+                        imLogger.debug(getModuleName(),getRoutineName(),getLineNumber(), "j = %i".format(j));
+                        imLogger.debug(getModuleName(),getRoutineName(),getLineNumber(), "SUM: sum + scaledCoords[offsets[depth]+j] = %i".format(sum + scaledCoords[offsets[depth]+j]));
+                        imLogger.debug(getModuleName(),getRoutineName(),getLineNumber(), "IND: ind + j*userDimProd[depth] = %i".format(ind+(j*userDimProd[depth])));
+                        if depth == ndim-1 then indicies.a[ind+(j*userDimProd[depth])] = sum+scaledCoords[offsets[depth]+j];
+                        else recursiveIndexCalc(depth+1,
+                                                ind+(j*userDimProd[depth]),
+                                                sum+scaledCoords[offsets[depth]+j],
+                                                if !advanced[depth] then advancedInd else j);
+                    }
+                }
+                else {
+                        imLogger.debug(getModuleName(),getRoutineName(),getLineNumber(), "depth = %i".format(depth));
+                        imLogger.debug(getModuleName(),getRoutineName(),getLineNumber(), "advancedInd = %i".format(advancedInd));
+                        imLogger.debug(getModuleName(),getRoutineName(),getLineNumber(), "SUM: sum + scaledCoords[offsets[depth]+advancedInd] = %i".format(sum + scaledCoords[offsets[depth]+advancedInd]));
+                        imLogger.debug(getModuleName(),getRoutineName(),getLineNumber(), "IND: ind = %i".format(ind));
+                        if depth == ndim-1 then indicies.a[ind] = sum+scaledCoords[offsets[depth]+advancedInd];
+                        else recursiveIndexCalc(depth+1,
+                                                ind,
+                                                sum+scaledCoords[offsets[depth]+advancedInd],
+                                                advancedInd);
                 }
             }
         }
+        // if isNonConsecutive {
+        //     var n = * reduce dims[reshapeDim];
+        //     var perm: [0..#n] int;
+        //     for i in 0..#n {
+        //         var div = floorDivisionHelper(n, advancedLen):int;
+        //         perm[i] = (i%div)*advancedLen + floorDivisionHelper(i, div):int;
+        //     }
+        //     var tmp = indicies.a[perm];
+        //     indicies.a = tmp;
+        // }
 
         // map used to generate the "array" key for intIndexMsg
         var arrayMap = new map(string, string);

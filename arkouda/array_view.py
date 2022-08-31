@@ -162,7 +162,8 @@ class ArrayView:
             types = []
             coords = []
             reshape_dim_list = []
-            index_dim_list = []
+            index_dim_list = []  # maybe called coordinate_dims instead of index/user dims
+            advanced = []
             key = key if self.order is OrderType.COLUMN_MAJOR else key[::-1]
             for i, x in enumerate(key):
                 if np.isscalar(x) and (resolve_scalar_dtype(x) in ["int64", "uint64"]):
@@ -187,8 +188,11 @@ class ArrayView:
                     slice_size = len(range(*(start, stop, stride)))
                     index_dim_list.append(slice_size)
                     reshape_dim_list.append(slice_size)
+                    advanced.append(False)
                 elif isinstance(x, pdarray) or isinstance(x, list):
                     raise TypeError(f"Advanced indexing is not yet supported {x} ({type(x)})")
+
+                    # UGGGHGHHHH i prob gotta do the same preprocessing as the pdarray case
                     # if bool
                     # if there are integer arrays present:
                     #     treat as integer special array (i.e. indices where non-zero):
@@ -199,19 +203,46 @@ class ArrayView:
                     #     act as if we are [b, ...], i.e. index by b followed by as many ':' as are needed
                     #     to fill out the rank of x
 
-                    # x = array(x)
-                    # kind, _ = translate_np_dtype(x.dtype)
-                    # if kind not in ("bool", "int"):
-                    #     raise TypeError("unsupported pdarray index type {}".format(x.dtype))
+                    x = array(x)
+                    kind, _ = translate_np_dtype(x.dtype)
+                    if kind not in ("bool", "int"):
+                        raise TypeError("unsupported pdarray index type {}".format(x.dtype))
                     # if kind == "bool" and dim != x.size:
                     #     raise ValueError("size mismatch {} {}".format(dim, x.size))
-                    # types.append('pdarray')
-                    # coords.append(x.name)
-                    # index_dim_list.append(x.size)
-                    # reshape_dim_list.append(x.size)
+                    types.append('pdarray')
+                    coords.append(x.name)
+                    index_dim_list.append(x.size)
+                    reshape_dim_list.append(x.size)
+                    advanced.append(True)
                     # arrays.append(x)
                 else:
                     raise TypeError(f"Unhandled key type: {x} ({type(x)})")
+
+            advanced = advanced[::-1] if self.order is OrderType.COLUMN_MAJOR else advanced
+            is_non_consecutive = ((advanced[0] and advanced[-1]) and not all(advanced)) or sum(np.logical_xor(advanced, list(advanced[1:]) + [advanced[-1]])) > 2
+
+            reshape_dim = ~np.array(advanced)
+            first_advanced = np.argmax(advanced)
+            reshape_dim[first_advanced] = True
+            reshape_dim = reshape_dim[::-1] if self.order is OrderType.COLUMN_MAJOR else reshape_dim
+            intermediary_user_dims = np.where(reshape_dim, index_dim_list, 1)
+            advanced_len = index_dim_list[first_advanced]
+            if is_non_consecutive:
+                # if non-consecutive special indicies
+                # remove first special and add len special to front
+                intermediary_user_dims = [advanced_len] + list(intermediary_user_dims[:first_advanced]) + list(
+                    intermediary_user_dims[(first_advanced + 1):])
+            user_dim_prod = array(np.cumprod(intermediary_user_dims) // intermediary_user_dims)
+
+            if is_non_consecutive:
+                reshape_dim_list = [reshape_dim_list[advanced][0]] + list(reshape_dim_list[~advanced[::-1]])
+            ret_size = np.prod(np.array(reshape_dim_list)[reshape_dim])
+            reshape_dim = array(reshape_dim)
+            advanced = array(advanced)
+            print(user_dim_prod)
+            print(reshape_dim)
+            print(advanced)
+
             index_dim = array(index_dim_list)
             repMsg = generic_msg(
                 cmd="arrayViewMixedIndex",
@@ -222,11 +253,20 @@ class ArrayView:
                     "dim_prod": self._dim_prod,
                     "types": types,
                     "coords": coords,
+                    "user_dim_prod": user_dim_prod,
+                    "reshape_dim": reshape_dim,
+                    "advanced": advanced,
+                    "advanced_len": advanced_len,
+                    "is_non_consecutive": is_non_consecutive,
+                    "ret_size": ret_size,
                 },
             )
+
+            # IVE NO CLUE WHAT TO DO NOW WHEN NOT COLUMN MAJOR
             reshape_dim = (
                 reshape_dim_list if self.order is OrderType.COLUMN_MAJOR else reshape_dim_list[::-1]
             )
+
             return create_pdarray(repMsg).reshape(reshape_dim, order=self.order.name)
         else:
             raise TypeError(f"Unhandled key type: {key} ({type(key)})")
