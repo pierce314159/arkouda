@@ -119,7 +119,8 @@ class ArrayView:
             # attempt to convert to a pdarray (allows for view[0,2,1] instead of view[ak.array([0,2,1])]
             # but pass on RuntimeError to allow things like
             # view[0,:,[True,False,True]] to be correctly handled
-            key = array(key)
+            if not any([isinstance(i, (list, slice)) for i in key]):
+                key = array(key)
         except (RuntimeError, TypeError, ValueError, DeprecationWarning):
             pass
         if isinstance(key, pdarray):
@@ -164,6 +165,7 @@ class ArrayView:
             reshape_dim_list = []
             index_dim_list = []  # maybe called coordinate_dims instead of index/user dims
             advanced = []
+            arrays = []  # kinda hate this but we don't want unknown sym errors
             key = key if self.order is OrderType.COLUMN_MAJOR else key[::-1]
             for i, x in enumerate(key):
                 if np.isscalar(x) and (resolve_scalar_dtype(x) in ["int64", "uint64"]):
@@ -190,7 +192,7 @@ class ArrayView:
                     reshape_dim_list.append(slice_size)
                     advanced.append(False)
                 elif isinstance(x, pdarray) or isinstance(x, list):
-                    raise TypeError(f"Advanced indexing is not yet supported {x} ({type(x)})")
+                    # raise TypeError(f"Advanced indexing is not yet supported {x} ({type(x)})")
 
                     # UGGGHGHHHH i prob gotta do the same preprocessing as the pdarray case
                     # if bool
@@ -214,14 +216,14 @@ class ArrayView:
                     index_dim_list.append(x.size)
                     reshape_dim_list.append(x.size)
                     advanced.append(True)
-                    # arrays.append(x)
+                    arrays.append(x)
                 else:
                     raise TypeError(f"Unhandled key type: {x} ({type(x)})")
 
-            advanced = advanced[::-1] if self.order is OrderType.COLUMN_MAJOR else advanced
+            advanced = np.array(advanced[::-1]) if self.order is OrderType.COLUMN_MAJOR else np.array(advanced)
             is_non_consecutive = ((advanced[0] and advanced[-1]) and not all(advanced)) or sum(np.logical_xor(advanced, list(advanced[1:]) + [advanced[-1]])) > 2
 
-            reshape_dim = ~np.array(advanced)
+            reshape_dim = ~advanced
             first_advanced = np.argmax(advanced)
             reshape_dim[first_advanced] = True
             reshape_dim = reshape_dim[::-1] if self.order is OrderType.COLUMN_MAJOR else reshape_dim
@@ -234,9 +236,12 @@ class ArrayView:
                     intermediary_user_dims[(first_advanced + 1):])
             user_dim_prod = array(np.cumprod(intermediary_user_dims) // intermediary_user_dims)
 
+            reshape_dim_list = np.array(reshape_dim_list)
             if is_non_consecutive:
                 reshape_dim_list = [reshape_dim_list[advanced][0]] + list(reshape_dim_list[~advanced[::-1]])
-            ret_size = np.prod(np.array(reshape_dim_list)[reshape_dim])
+            else:
+                reshape_dim_list = reshape_dim_list[reshape_dim]
+            ret_size = np.prod(reshape_dim_list)
             reshape_dim = array(reshape_dim)
             advanced = array(advanced)
             print(user_dim_prod)
