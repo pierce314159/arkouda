@@ -202,3 +202,13 @@ class ArrayViewTest(ArkoudaTest):
             np.arange(27).reshape(3, 3, 3)[[2], :, [0]].tolist(),
             ak.arange(27).reshape(3, 3, 3)[[2], :, [0]].to_list(),
         )
+        self.assertListEqual(
+            np.arange(27).reshape(3, 3, 3)[[0, 2], [0, 2], :].tolist(),
+            ak.arange(27).reshape(3, 3, 3)[[0, 2], [0, 2], :].to_list(),
+        )
+        # self.assertListEqual(
+        #     np.arange(24).reshape(2, 3, 4)[[0, 1], :, [0, 1]].tolist(),
+        #     ak.arange(24).reshape(2, 3, 4)[[0, 1], :, [0, 1]].to_list(),
+        # )
+
+
