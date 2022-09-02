@@ -102,6 +102,8 @@ module IndexingMsg
             }
         }
 
+        writeln(scaledCoords);
+
         // create full index list
         // get next symbol name
         var indiciesName = st.nextName();

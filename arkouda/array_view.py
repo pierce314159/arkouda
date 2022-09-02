@@ -234,8 +234,8 @@ class ArrayView:
                 np.logical_xor(advanced, list(advanced[1:]) + [advanced[-1]])
             ) > 2
 
-            advanced = advanced[::-1]
-            reshape_advanced = reshape_advanced[::-1]
+            advanced = advanced if self.order is OrderType.COLUMN_MAJOR else advanced[::-1]
+            reshape_advanced = reshape_advanced if self.order is OrderType.COLUMN_MAJOR else reshape_advanced[::-1]
             print(advanced)
             reshape_dim = ~advanced
             print(reshape_dim)
