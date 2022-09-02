@@ -165,6 +165,7 @@ class ArrayView:
             reshape_dim_list = []
             index_dim_list = []  # maybe called coordinate_dims instead of index/user dims
             advanced = []
+            reshape_advanced = []
             arrays = []  # kinda hate this but we don't want unknown sym errors
             key = key if self.order is OrderType.COLUMN_MAJOR else key[::-1]
             for i, x in enumerate(key):
@@ -178,6 +179,7 @@ class ArrayView:
                         # have to cast to int because JSON doesn't recognize numpy dtypes
                         coords.append(json.dumps(int(x)))
                         index_dim_list.append(1)
+                        advanced.append(False)
                     else:
                         raise IndexError(
                             f"index {orig_key} is out of bounds for axis {i} "
@@ -191,6 +193,7 @@ class ArrayView:
                     index_dim_list.append(slice_size)
                     reshape_dim_list.append(slice_size)
                     advanced.append(False)
+                    reshape_advanced.append(False)
                 elif isinstance(x, pdarray) or isinstance(x, list):
                     # raise TypeError(f"Advanced indexing is not yet supported {x} ({type(x)})")
 
@@ -211,44 +214,60 @@ class ArrayView:
                         raise TypeError("unsupported pdarray index type {}".format(x.dtype))
                     # if kind == "bool" and dim != x.size:
                     #     raise ValueError("size mismatch {} {}".format(dim, x.size))
-                    types.append('pdarray')
+                    types.append("pdarray")
                     coords.append(x.name)
                     index_dim_list.append(x.size)
                     reshape_dim_list.append(x.size)
                     advanced.append(True)
+                    reshape_advanced.append(True)
                     arrays.append(x)
                 else:
                     raise TypeError(f"Unhandled key type: {x} ({type(x)})")
 
-            advanced = np.array(advanced[::-1]) if self.order is OrderType.COLUMN_MAJOR else np.array(advanced)
-            is_non_consecutive = ((advanced[0] and advanced[-1]) and not all(advanced)) or sum(np.logical_xor(advanced, list(advanced[1:]) + [advanced[-1]])) > 2
+            advanced = (
+                np.array(advanced[::-1]) if self.order is OrderType.COLUMN_MAJOR else np.array(advanced)
+            )
+            reshape_advanced = (
+                np.array(reshape_advanced[::-1]) if self.order is OrderType.COLUMN_MAJOR else np.array(reshape_advanced)
+            )
+            is_non_consecutive = ((advanced[0] and advanced[-1]) and not all(advanced)) or sum(
+                np.logical_xor(advanced, list(advanced[1:]) + [advanced[-1]])
+            ) > 2
 
-            reshape_dim = ~advanced
-            first_advanced = np.argmax(advanced)
+            reshape_dim = ~reshape_advanced
+            first_advanced = np.argmax(reshape_advanced)
             reshape_dim[first_advanced] = True
             reshape_dim = reshape_dim[::-1] if self.order is OrderType.COLUMN_MAJOR else reshape_dim
-            intermediary_user_dims = np.where(reshape_dim, index_dim_list, 1)
-            advanced_len = index_dim_list[first_advanced]
+            intermediary_user_dims = np.where(reshape_dim, reshape_dim_list, 1)
+            advanced_len = reshape_dim_list[first_advanced]
             if is_non_consecutive:
                 # if non-consecutive special indicies
                 # remove first special and add len special to front
-                intermediary_user_dims = [advanced_len] + list(intermediary_user_dims[:first_advanced]) + list(
-                    intermediary_user_dims[(first_advanced + 1):])
-            user_dim_prod = array(np.cumprod(intermediary_user_dims) // intermediary_user_dims)
+                intermediary_user_dims = (
+                    [advanced_len]
+                    + list(intermediary_user_dims[:first_advanced])
+                    + list(intermediary_user_dims[(first_advanced + 1) :])
+                )
+            user_dim_prod = array(list(np.cumprod(intermediary_user_dims) // intermediary_user_dims))
 
             reshape_dim_list = np.array(reshape_dim_list)
             if is_non_consecutive:
-                reshape_dim_list = [reshape_dim_list[advanced][0]] + list(reshape_dim_list[~advanced[::-1]])
+                reshape_dim_list = [reshape_dim_list[reshape_advanced][0]] + list(
+                    reshape_dim_list[~reshape_advanced[::-1]]
+                )
+                reshape_dim_list = reshape_dim_list[::-1]
+                print(f"reshape_dim_list = {reshape_dim_list}")
             else:
                 reshape_dim_list = reshape_dim_list[reshape_dim]
             ret_size = np.prod(reshape_dim_list)
-            reshape_dim = array(reshape_dim)
-            advanced = array(advanced)
-            print(user_dim_prod)
-            print(reshape_dim)
-            print(advanced)
+            reshape_dim = array(list(reshape_dim))
+            advanced = array(list(advanced))
+            print(f"user_dim_prod = {user_dim_prod}")
+            print(f"reshape_dim = {reshape_dim}")
+            print(f"advanced = {advanced}")
+            print(f"reshape_advanced = {reshape_advanced}")
 
-            index_dim = array(index_dim_list)
+            index_dim = array(list(index_dim_list))
             repMsg = generic_msg(
                 cmd="arrayViewMixedIndex",
                 args={
@@ -271,8 +290,13 @@ class ArrayView:
             reshape_dim = (
                 reshape_dim_list if self.order is OrderType.COLUMN_MAJOR else reshape_dim_list[::-1]
             )
+            print(f"reshape_dim_list = {reshape_dim_list}")
+            print(f"ORDER = {self.order}")
+            print(f"reshape_dim = {reshape_dim}")
 
-            return create_pdarray(repMsg).reshape(reshape_dim, order=self.order.name)
+            # see if this fixes the unknown sym stuff
+            inter_arr = create_pdarray(repMsg)
+            return inter_arr.reshape(list(reshape_dim), order=self.order.name)
         else:
             raise TypeError(f"Unhandled key type: {key} ({type(key)})")
 

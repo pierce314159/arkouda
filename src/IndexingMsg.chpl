@@ -157,6 +157,7 @@ module IndexingMsg
         //     var tmp = indicies.a[perm];
         //     indicies.a = tmp;
         // }
+        writeln(indicies.a);
 
         // map used to generate the "array" key for intIndexMsg
         var arrayMap = new map(string, string);

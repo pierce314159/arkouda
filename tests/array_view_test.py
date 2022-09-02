@@ -188,3 +188,17 @@ class ArrayViewTest(ArkoudaTest):
 
         # n[:, ::-1, 1:5:2].tolist() = [[10, 22], [8, 20], [6, 18]]
         self.assertListEqual(n[:, ::-1, 1:5:2].tolist(), a[:, ::-1, 1:5:2].to_list())
+
+    def test_advanced_indexing(self):
+        self.assertListEqual(
+            np.arange(4).reshape(2, 2)[[0, 1], [0, 1]].tolist(),
+            ak.arange(4).reshape(2, 2)[[0, 1], [0, 1]].to_list(),
+        )
+        self.assertListEqual(
+            np.arange(20).reshape(2, 10)[[0, 1], [5, 6]].tolist(),
+            ak.arange(20).reshape(2, 10)[[0, 1], [5, 6]].to_list(),
+        )
+        self.assertListEqual(
+            np.arange(27).reshape(3, 3, 3)[[2], :, [0]].tolist(),
+            ak.arange(27).reshape(3, 3, 3)[[2], :, [0]].to_list(),
+        )
