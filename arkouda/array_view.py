@@ -234,12 +234,12 @@ class ArrayView:
                 np.logical_xor(advanced, list(advanced[1:]) + [advanced[-1]])
             ) > 2
 
-            reshape_dim = ~reshape_advanced
-            first_advanced = np.argmax(reshape_advanced)
+            reshape_dim = ~advanced
+            first_advanced = np.argmax(advanced)
             reshape_dim[first_advanced] = True
             reshape_dim = reshape_dim[::-1] if self.order is OrderType.COLUMN_MAJOR else reshape_dim
-            intermediary_user_dims = np.where(reshape_dim, reshape_dim_list, 1)
-            advanced_len = reshape_dim_list[first_advanced]
+            intermediary_user_dims = np.where(reshape_dim, index_dim_list, 1)
+            advanced_len = index_dim_list[first_advanced]
             if is_non_consecutive:
                 # if non-consecutive special indicies
                 # remove first special and add len special to front
@@ -258,6 +258,10 @@ class ArrayView:
                 reshape_dim_list = reshape_dim_list[::-1]
                 print(f"reshape_dim_list = {reshape_dim_list}")
             else:
+                reshape_dim = ~reshape_advanced
+                first_advanced = np.argmax(reshape_advanced)
+                reshape_dim[first_advanced] = True
+                reshape_dim = reshape_dim[::-1] if self.order is OrderType.COLUMN_MAJOR else reshape_dim
                 reshape_dim_list = reshape_dim_list[reshape_dim]
             ret_size = np.prod(reshape_dim_list)
             reshape_dim = array(list(reshape_dim))
