@@ -267,9 +267,7 @@ class ArrayView:
             print(f"user_dim_prod = {user_dim_prod}")
 
             reshape_dim_list = np.array(reshape_dim_list)
-            print(reshape_dim_list)
-            print(reshape_dim)
-            ret_size = np.prod(reshape_dim_list[reshape_dim])
+            ret_size = np.prod(np.array(index_dim_list)[reshape_dim])
             reshape_dim = array(list(reshape_dim))
             advanced = array(list(advanced[::-1]))
             print(f"ret_size = {ret_size}")

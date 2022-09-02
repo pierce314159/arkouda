@@ -223,6 +223,11 @@ class ArrayViewTest(ArkoudaTest):
             np.arange(24).reshape(2, 3, 4)[[0, 1], [0, 1], :].tolist(),
             ak.arange(24).reshape(2, 3, 4)[[0, 1], [0, 1], :].to_list(),
         )
+
+        self.assertListEqual(
+            np.arange(24).reshape(2, 3, 4)[1, [0, 1], [0, 1]].tolist(),
+            ak.arange(24).reshape(2, 3, 4)[1, [0, 1], [0, 1]].to_list(),
+        )
         # still gotta work on column_major
         # self.assertListEqual(
         #     np.arange(24).reshape(2, 3, 4, order="F")[[0, 1], [0, 1], :].tolist(),
@@ -245,10 +250,18 @@ class ArrayViewTest(ArkoudaTest):
             ak.arange(3**5).reshape(3, 3, 3, 3, 3)[0:1:2, [0, 2], :, [0, 1], [1, 2]].to_list(),
         )
         self.assertListEqual(
-            np.arange(4*4*3*2*4*3).reshape(4, 4, 3, 2, 4, 3)[[0, 1, 3], 0:4:2, [0, 1, 2], :, [1, 2, 3], [0, 1, 2]].tolist(),
-            ak.arange(4*4*3*2*4*3).reshape(4, 4, 3, 2, 4, 3)[[0, 1, 3], 0:4:2, [0, 1, 2], :, [1, 2, 3], [0, 1, 2]].to_list(),
+            np.arange(4 * 4 * 3 * 2 * 4 * 3)
+            .reshape(4, 4, 3, 2, 4, 3)[[0, 1, 3], 0:4:2, [0, 1, 2], :, [1, 2, 3], [0, 1, 2]]
+            .tolist(),
+            ak.arange(4 * 4 * 3 * 2 * 4 * 3)
+            .reshape(4, 4, 3, 2, 4, 3)[[0, 1, 3], 0:4:2, [0, 1, 2], :, [1, 2, 3], [0, 1, 2]]
+            .to_list(),
         )
-
-
-
-
+        self.assertListEqual(
+            np.arange(4 * 4 * 3 * 2 * 4 * 3)
+            .reshape(4, 4, 3, 2, 4, 3)[[0, 1, 3], 0:4:2, [0, 1, 2], :, 3, [0, 1, 2]]
+            .tolist(),
+            ak.arange(4 * 4 * 3 * 2 * 4 * 3)
+            .reshape(4, 4, 3, 2, 4, 3)[[0, 1, 3], 0:4:2, [0, 1, 2], :, 3, [0, 1, 2]]
+            .to_list(),
+        )
