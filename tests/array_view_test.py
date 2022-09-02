@@ -203,12 +203,48 @@ class ArrayViewTest(ArkoudaTest):
             ak.arange(27).reshape(3, 3, 3)[[2], :, [0]].to_list(),
         )
         self.assertListEqual(
-            np.arange(27).reshape(3, 3, 3)[[0, 2], [0, 2], :].tolist(),
-            ak.arange(27).reshape(3, 3, 3)[[0, 2], [0, 2], :].to_list(),
+            np.arange(27).reshape(3, 3, 3)[[0, 2], :, [0, 2]].tolist(),
+            ak.arange(27).reshape(3, 3, 3)[[0, 2], :, [0, 2]].to_list(),
         )
+        self.assertListEqual(
+            np.arange(27).reshape(3, 3, 3)[[0, 2], 0:3:2, [0, 2]].tolist(),
+            ak.arange(27).reshape(3, 3, 3)[[0, 2], 0:3:2, [0, 2]].to_list(),
+        )
+        # test all three cases with non-symmetric shape
+        self.assertListEqual(
+            np.arange(24).reshape(2, 3, 4)[:, [0, 1], [0, 1]].tolist(),
+            ak.arange(24).reshape(2, 3, 4)[:, [0, 1], [0, 1]].to_list(),
+        )
+        self.assertListEqual(
+            np.arange(24).reshape(2, 3, 4)[[0, 1], :, [0, 1]].tolist(),
+            ak.arange(24).reshape(2, 3, 4)[[0, 1], :, [0, 1]].to_list(),
+        )
+        self.assertListEqual(
+            np.arange(24).reshape(2, 3, 4)[[0, 1], [0, 1], :].tolist(),
+            ak.arange(24).reshape(2, 3, 4)[[0, 1], [0, 1], :].to_list(),
+        )
+        # still gotta work on column_major
         # self.assertListEqual(
-        #     np.arange(24).reshape(2, 3, 4)[[0, 1], :, [0, 1]].tolist(),
-        #     ak.arange(24).reshape(2, 3, 4)[[0, 1], :, [0, 1]].to_list(),
+        #     np.arange(24).reshape(2, 3, 4, order="F")[[0, 1], [0, 1], :].tolist(),
+        #     ak.arange(24).reshape(2, 3, 4, order="F")[[0, 1], [0, 1], :].to_list(),
         # )
+        self.assertListEqual(
+            np.arange(24).reshape(4, 3, 2)[[0, 2, 3], [0, 1, 2], :].tolist(),
+            ak.arange(24).reshape(4, 3, 2)[[0, 2, 3], [0, 1, 2], :].to_list(),
+        )
+        self.assertListEqual(
+            np.arange(16).reshape(2, 2, 2, 2)[[0, 1], [0, 1], [0, 1], [0, 1]].tolist(),
+            ak.arange(16).reshape(2, 2, 2, 2)[[0, 1], [0, 1], [0, 1], [0, 1]].to_list(),
+        )
+        self.assertListEqual(
+            np.arange(3**5).reshape(3, 3, 3, 3, 3)[0:1:2, :, [0, 2], [0, 1], [1, 2]].tolist(),
+            ak.arange(3**5).reshape(3, 3, 3, 3, 3)[0:1:2, :, [0, 2], [0, 1], [1, 2]].to_list(),
+        )
+        self.assertListEqual(
+            np.arange(3**5).reshape(3, 3, 3, 3, 3)[0:1:2, [0, 2], :, [0, 1], [1, 2]].tolist(),
+            ak.arange(3**5).reshape(3, 3, 3, 3, 3)[0:1:2, [0, 2], :, [0, 1], [1, 2]].to_list(),
+        )
+
+
 
 

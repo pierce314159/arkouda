@@ -234,12 +234,21 @@ class ArrayView:
                 np.logical_xor(advanced, list(advanced[1:]) + [advanced[-1]])
             ) > 2
 
+            advanced = advanced[::-1]
+            reshape_advanced = reshape_advanced[::-1]
+            print(advanced)
             reshape_dim = ~advanced
+            print(reshape_dim)
             first_advanced = np.argmax(advanced)
+            print(first_advanced)
             reshape_dim[first_advanced] = True
-            reshape_dim = reshape_dim[::-1] if self.order is OrderType.COLUMN_MAJOR else reshape_dim
+            print(reshape_dim)
+            reshape_dim = reshape_dim if self.order is OrderType.COLUMN_MAJOR else reshape_dim[::-1]
+            print(reshape_dim)
             intermediary_user_dims = np.where(reshape_dim, index_dim_list, 1)
+            print(intermediary_user_dims)
             advanced_len = index_dim_list[first_advanced]
+            print(advanced_len)
             if is_non_consecutive:
                 # if non-consecutive special indicies
                 # remove first special and add len special to front
@@ -248,28 +257,22 @@ class ArrayView:
                     + list(intermediary_user_dims[:first_advanced])
                     + list(intermediary_user_dims[(first_advanced + 1) :])
                 )
+                print(intermediary_user_dims)
             user_dim_prod = array(list(np.cumprod(intermediary_user_dims) // intermediary_user_dims))
-
-            reshape_dim_list = np.array(reshape_dim_list)
-            if is_non_consecutive:
-                reshape_dim_list = [reshape_dim_list[reshape_advanced][0]] + list(
-                    reshape_dim_list[~reshape_advanced[::-1]]
-                )
-                reshape_dim_list = reshape_dim_list[::-1]
-                print(f"reshape_dim_list = {reshape_dim_list}")
-            else:
-                reshape_dim = ~reshape_advanced
-                first_advanced = np.argmax(reshape_advanced)
-                reshape_dim[first_advanced] = True
-                reshape_dim = reshape_dim[::-1] if self.order is OrderType.COLUMN_MAJOR else reshape_dim
-                reshape_dim_list = reshape_dim_list[reshape_dim]
-            ret_size = np.prod(reshape_dim_list)
-            reshape_dim = array(list(reshape_dim))
-            advanced = array(list(advanced))
-            print(f"user_dim_prod = {user_dim_prod}")
-            print(f"reshape_dim = {reshape_dim}")
             print(f"advanced = {advanced}")
             print(f"reshape_advanced = {reshape_advanced}")
+            print(f"index_dim_list = {index_dim_list}")
+            print(f"reshape_dim = {reshape_dim}")
+            print(f"intermediary_user_dims = {intermediary_user_dims}")
+            print(f"user_dim_prod = {user_dim_prod}")
+
+            reshape_dim_list = np.array(reshape_dim_list)
+            print(reshape_dim_list)
+            print(reshape_dim)
+            ret_size = np.prod(reshape_dim_list[reshape_dim])
+            reshape_dim = array(list(reshape_dim))
+            advanced = array(list(advanced[::-1]))
+            print(f"ret_size = {ret_size}")
 
             index_dim = array(list(index_dim_list))
             repMsg = generic_msg(
@@ -289,10 +292,28 @@ class ArrayView:
                     "ret_size": ret_size,
                 },
             )
+            print(f"is_non_consecutive = {is_non_consecutive}")
+            if is_non_consecutive:
+                print([reshape_dim_list[reshape_advanced][0]])
+                print(list(reshape_dim_list[::-1][~reshape_advanced]))
+                reshape_dim_list = [reshape_dim_list[reshape_advanced][0]] + list(
+                    reshape_dim_list[::-1][~reshape_advanced]
+                )
+                print(f"reshape_dim = {reshape_dim}")
+                # reshape_dim = reshape_dim[::-1] if self.order is OrderType.COLUMN_MAJOR else reshape_dim
+                print(f"reshape_dim_list = {reshape_dim_list}")
+            else:
+                reshape_dim = ~reshape_advanced
+                first_advanced = np.argmax(reshape_advanced)
+                reshape_dim[first_advanced] = True
+                print(f"reshape_dim = {reshape_dim}")
+                reshape_dim = reshape_dim[::-1] if self.order is OrderType.COLUMN_MAJOR else reshape_dim
+                reshape_dim_list = reshape_dim_list[::-1][reshape_dim]
+                print(f"reshape_dim_list = {reshape_dim_list}")
 
             # IVE NO CLUE WHAT TO DO NOW WHEN NOT COLUMN MAJOR
             reshape_dim = (
-                reshape_dim_list if self.order is OrderType.COLUMN_MAJOR else reshape_dim_list[::-1]
+                reshape_dim_list[::-1] if self.order is OrderType.COLUMN_MAJOR else reshape_dim_list
             )
             print(f"reshape_dim_list = {reshape_dim_list}")
             print(f"ORDER = {self.order}")
