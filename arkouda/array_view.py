@@ -377,12 +377,12 @@ class ArrayView:
         else:
             raise TypeError(f"Unhandled key type: {key} ({type(key)})")
 
-    # @property
-    # def T(self):
-    #     if self.order is OrderType.ROW_MAJOR:
-    #         return self.base.reshape(self.shape, order="F")
-    #     else:
-    #         return self.base.reshape(self.shape)
+    @property
+    def T(self):
+        if self.order is OrderType.ROW_MAJOR:
+            return self.base.reshape(self.shape, order="F")
+        else:
+            return self.base.reshape(self.shape)
 
     def to_ndarray(self) -> np.ndarray:
         """
