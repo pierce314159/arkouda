@@ -283,14 +283,14 @@ class ArrayView:
                     "advanced_len": advanced_len,
                     "is_non_consecutive": is_non_consecutive,
                     "ret_size": ret_size,
-                    "is_default_order": self.order is OrderType.ROW_MAJOR,
+                    "is_default_order": self.order is not OrderType.ROW_MAJOR,
                 },
             )
             print(f"is_non_consecutive = {is_non_consecutive}")
             if is_non_consecutive:
-                print([reshape_dim_list[reshape_advanced][0]])
+                print([reshape_dim_list[::-1][reshape_advanced][0]])
                 print(list(reshape_dim_list[::-1][~reshape_advanced]))
-                reshape_dim_list = [reshape_dim_list[reshape_advanced][0]] + list(
+                reshape_dim_list = [reshape_dim_list[::-1][reshape_advanced][0]] + list(
                     reshape_dim_list[::-1][~reshape_advanced]
                 )
                 # reshape_dim = reshape_dim[::-1] if self.order is OrderType.COLUMN_MAJOR else reshape_dim

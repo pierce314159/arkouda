@@ -223,7 +223,7 @@ class ArrayViewTest(ArkoudaTest):
             np.arange(24).reshape(2, 3, 4)[[0, 1], [0, 1], :].tolist(),
             ak.arange(24).reshape(2, 3, 4)[[0, 1], [0, 1], :].to_list(),
         )
-
+        # throw in integer indexing
         self.assertListEqual(
             np.arange(24).reshape(2, 3, 4)[1, [0, 1], [0, 1]].tolist(),
             ak.arange(24).reshape(2, 3, 4)[1, [0, 1], [0, 1]].to_list(),
@@ -271,6 +271,22 @@ class ArrayViewTest(ArkoudaTest):
             np.arange(3**3).reshape(3, 3, 3, order="F")[:, [0, 1], [0, 1]].tolist(),
             ak.arange(3**3).reshape(3, 3, 3, order="F")[:, [0, 1], [0, 1]].to_list(),
         )
+        self.assertListEqual(
+            np.arange(20).reshape(2, 10, order="F")[[0, 1], [5, 6]].tolist(),
+            ak.arange(20).reshape(2, 10, order="F")[[0, 1], [5, 6]].to_list(),
+        )
+        self.assertListEqual(
+            np.arange(27).reshape(3, 3, 3, order="F")[[2], :, [0]].tolist(),
+            ak.arange(27).reshape(3, 3, 3, order="F")[[2], :, [0]].to_list(),
+        )
+        self.assertListEqual(
+            np.arange(27).reshape(3, 3, 3, order="F")[[0, 2], :, [0, 2]].tolist(),
+            ak.arange(27).reshape(3, 3, 3, order="F")[[0, 2], :, [0, 2]].to_list(),
+        )
+        self.assertListEqual(
+            np.arange(27).reshape(3, 3, 3, order="F")[[0, 2], 0:3:2, [0, 2]].tolist(),
+            ak.arange(27).reshape(3, 3, 3, order="F")[[0, 2], 0:3:2, [0, 2]].to_list(),
+        )
         # test all three cases with non-symmetric shape
         self.assertListEqual(
             np.arange(24).reshape(2, 3, 4, order="F")[:, [0, 1], [0, 1]].tolist(),
@@ -283,4 +299,41 @@ class ArrayViewTest(ArkoudaTest):
         self.assertListEqual(
             np.arange(24).reshape(2, 3, 4, order="F")[[0, 1], [0, 1], :].tolist(),
             ak.arange(24).reshape(2, 3, 4, order="F")[[0, 1], [0, 1], :].to_list(),
+        )
+        # throw in integer indexing
+        self.assertListEqual(
+            np.arange(24).reshape(2, 3, 4, order="F")[1, [0, 1], [0, 1]].tolist(),
+            ak.arange(24).reshape(2, 3, 4, order="F")[1, [0, 1], [0, 1]].to_list(),
+        )
+        self.assertListEqual(
+            np.arange(24).reshape(4, 3, 2, order="F")[[0, 2, 3], [0, 1, 2], :].tolist(),
+            ak.arange(24).reshape(4, 3, 2, order="F")[[0, 2, 3], [0, 1, 2], :].to_list(),
+        )
+        self.assertListEqual(
+            np.arange(16).reshape(2, 2, 2, 2, order="F")[[0, 1], [0, 1], [0, 1], [0, 1]].tolist(),
+            ak.arange(16).reshape(2, 2, 2, 2, order="F")[[0, 1], [0, 1], [0, 1], [0, 1]].to_list(),
+        )
+        self.assertListEqual(
+            np.arange(3**5).reshape(3, 3, 3, 3, 3, order="F")[0:1:2, :, [0, 2], [0, 1], [1, 2]].tolist(),
+            ak.arange(3**5).reshape(3, 3, 3, 3, 3, order="F")[0:1:2, :, [0, 2], [0, 1], [1, 2]].to_list(),
+        )
+        # self.assertListEqual(
+        #     np.arange(3**5).reshape(3, 3, 3, 3, 3, order="F")[0:1:2, [0, 2], :, [0, 1], [1, 2]].tolist(),
+        #     ak.arange(3**5).reshape(3, 3, 3, 3, 3, order="F")[0:1:2, [0, 2], :, [0, 1], [1, 2]].to_list(),
+        # )
+        self.assertListEqual(
+            np.arange(4 * 4 * 3 * 2 * 4 * 3)
+            .reshape(4, 4, 3, 2, 4, 3, order="F")[[0, 1, 3], 0:4:2, [0, 1, 2], :, [1, 2, 3], [0, 1, 2]]
+            .tolist(),
+            ak.arange(4 * 4 * 3 * 2 * 4 * 3)
+            .reshape(4, 4, 3, 2, 4, 3, order="F")[[0, 1, 3], 0:4:2, [0, 1, 2], :, [1, 2, 3], [0, 1, 2]]
+            .to_list(),
+        )
+        self.assertListEqual(
+            np.arange(4 * 4 * 3 * 2 * 4 * 3)
+            .reshape(4, 4, 3, 2, 4, 3, order="F")[[0, 1, 3], 0:4:2, [0, 1, 2], :, 3, [0, 1, 2]]
+            .tolist(),
+            ak.arange(4 * 4 * 3 * 2 * 4 * 3)
+            .reshape(4, 4, 3, 2, 4, 3, order="F")[[0, 1, 3], 0:4:2, [0, 1, 2], :, 3, [0, 1, 2]]
+            .to_list(),
         )
