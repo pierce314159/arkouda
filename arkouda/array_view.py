@@ -226,7 +226,7 @@ class ArrayView:
 
             advanced = np.array(advanced[::-1])
             reshape_advanced = np.array(reshape_advanced[::-1])
-            reshape_dim_list = np.array(reshape_dim_list)
+            reshape_dim_list = np.array(reshape_dim_list[::-1])
             is_non_consecutive = ((advanced[0] and advanced[-1]) and not all(advanced)) or sum(
                 np.logical_xor(advanced, list(advanced[1:]) + [advanced[-1]])
             ) > 2
@@ -286,17 +286,16 @@ class ArrayView:
                     "advanced_len": advanced_len,
                     "is_non_consecutive": is_non_consecutive,
                     "ret_size": ret_size,
-                    "is_default_order": self.order is not OrderType.ROW_MAJOR,
+                    "is_default_order": self.order is OrderType.ROW_MAJOR,
                 },
             )
             print(f"is_non_consecutive = {is_non_consecutive}")
             if is_non_consecutive:
                 print([advanced_len])
-                print(list(reshape_dim_list[::-1][~reshape_advanced]))
+                print(list(reshape_dim_list[~reshape_advanced]))
                 reshape_dim_list = [advanced_len] + list(
-                    reshape_dim_list[::-1][~reshape_advanced]
+                    reshape_dim_list[~reshape_advanced]
                 )
-                # reshape_dim = reshape_dim[::-1] if self.order is OrderType.COLUMN_MAJOR else reshape_dim
                 reshape_dim_list = reshape_dim_list[::-1] if self.order is OrderType.COLUMN_MAJOR else reshape_dim_list
                 print(f"reshape_dim = {reshape_dim}")
                 print(f"reshape_dim_list = {reshape_dim_list}")
@@ -305,10 +304,10 @@ class ArrayView:
                 first_advanced = np.argmax(reshape_advanced)
                 reshape_dim[first_advanced] = True
                 print(f"reshape_dim = {reshape_dim}")
-                reshape_dim_list = reshape_dim_list[::-1][reshape_dim]
+                reshape_dim_list = reshape_dim_list[reshape_dim]
                 print(f"reshape_dim_list = {reshape_dim_list}")
 
-            # IVE NO CLUE WHAT TO DO NOW WHEN NOT COLUMN MAJOR
+            # IVE NO CLUE WHAT TO DO NOW
             reshape_dim = (
                 reshape_dim_list[::-1] if self.order is OrderType.COLUMN_MAJOR else reshape_dim_list
             )
