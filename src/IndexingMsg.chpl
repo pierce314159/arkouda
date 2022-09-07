@@ -35,7 +35,7 @@ module IndexingMsg
     }
 
     proc arrayViewMixedIndexMsg(cmd: string, payload: string, st: borrowed SymTab): MsgTuple throws {
-        var msgArgs = parseMessageArgs(payload, 12);
+        var msgArgs = parseMessageArgs(payload, 13);
         var ndim = msgArgs.get("ndim").getIntValue();
         const pdaName = msgArgs.getValueOf("base");
         const indexDimName = msgArgs.getValueOf("index_dim");
@@ -46,6 +46,7 @@ module IndexingMsg
         const advancedLen = msgArgs.get("advanced_len").getIntValue();
         const isNonConsecutive = msgArgs.get("is_non_consecutive").getBoolValue();
         const retsize = msgArgs.get("ret_size").getIntValue();
+        const isDefaultOrder = msgArgs.get("is_default_order").getBoolValue();
 
         imLogger.debug(getModuleName(),getRoutineName(),getLineNumber(),
                                                     "%s %s %i %s %s".format(cmd, pdaName, ndim, dimProdName, msgArgs.getValueOf("coords")));
@@ -185,7 +186,7 @@ module IndexingMsg
         //     return new MsgTuple(repMsg, MsgType.NORMAL);
         // }
 
-        if isNonConsecutive {
+        if isNonConsecutive && isDefaultOrder {
             // var n = * reduce dims[reshapeDim];
             var perm: [0..#retsize] int;
             for i in 0..#retsize {

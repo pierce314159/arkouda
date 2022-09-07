@@ -224,18 +224,12 @@ class ArrayView:
                 else:
                     raise TypeError(f"Unhandled key type: {x} ({type(x)})")
 
-            advanced = (
-                np.array(advanced[::-1]) if self.order is OrderType.COLUMN_MAJOR else np.array(advanced)
-            )
-            reshape_advanced = (
-                np.array(reshape_advanced[::-1]) if self.order is OrderType.COLUMN_MAJOR else np.array(reshape_advanced)
-            )
+            advanced = np.array(advanced[::-1])
+            reshape_advanced = np.array(reshape_advanced[::-1])
             is_non_consecutive = ((advanced[0] and advanced[-1]) and not all(advanced)) or sum(
                 np.logical_xor(advanced, list(advanced[1:]) + [advanced[-1]])
             ) > 2
 
-            advanced = advanced if self.order is OrderType.COLUMN_MAJOR else advanced[::-1]
-            reshape_advanced = reshape_advanced if self.order is OrderType.COLUMN_MAJOR else reshape_advanced[::-1]
             print(advanced)
             reshape_dim = ~advanced
             print(reshape_dim)
@@ -243,7 +237,8 @@ class ArrayView:
             print(first_advanced)
             reshape_dim[first_advanced] = True
             print(reshape_dim)
-            reshape_dim = reshape_dim if self.order is OrderType.COLUMN_MAJOR else reshape_dim[::-1]
+            # reshape_dim = reshape_dim if self.order is OrderType.COLUMN_MAJOR else reshape_dim[::-1]
+            reshape_dim = reshape_dim[::-1]
             print(reshape_dim)
             intermediary_user_dims = np.where(reshape_dim, index_dim_list, 1)
             print(intermediary_user_dims)
@@ -288,6 +283,7 @@ class ArrayView:
                     "advanced_len": advanced_len,
                     "is_non_consecutive": is_non_consecutive,
                     "ret_size": ret_size,
+                    "is_default_order": self.order is OrderType.ROW_MAJOR,
                 },
             )
             print(f"is_non_consecutive = {is_non_consecutive}")
@@ -297,15 +293,15 @@ class ArrayView:
                 reshape_dim_list = [reshape_dim_list[reshape_advanced][0]] + list(
                     reshape_dim_list[::-1][~reshape_advanced]
                 )
-                print(f"reshape_dim = {reshape_dim}")
                 # reshape_dim = reshape_dim[::-1] if self.order is OrderType.COLUMN_MAJOR else reshape_dim
+                reshape_dim_list = reshape_dim_list[::-1] if self.order is OrderType.COLUMN_MAJOR else reshape_dim_list
+                print(f"reshape_dim = {reshape_dim}")
                 print(f"reshape_dim_list = {reshape_dim_list}")
             else:
                 reshape_dim = ~reshape_advanced
                 first_advanced = np.argmax(reshape_advanced)
                 reshape_dim[first_advanced] = True
                 print(f"reshape_dim = {reshape_dim}")
-                reshape_dim = reshape_dim[::-1] if self.order is OrderType.COLUMN_MAJOR else reshape_dim
                 reshape_dim_list = reshape_dim_list[::-1][reshape_dim]
                 print(f"reshape_dim_list = {reshape_dim_list}")
 
@@ -378,6 +374,13 @@ class ArrayView:
             raise NotImplementedError("Setting via slicing and advanced indexing is not yet supported")
         else:
             raise TypeError(f"Unhandled key type: {key} ({type(key)})")
+
+    # @property
+    # def T(self):
+    #     if self.order is OrderType.ROW_MAJOR:
+    #         return self.base.reshape(self.shape, order="F")
+    #     else:
+    #         return self.base.reshape(self.shape)
 
     def to_ndarray(self) -> np.ndarray:
         """
