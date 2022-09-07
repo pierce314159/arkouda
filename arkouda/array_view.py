@@ -226,6 +226,7 @@ class ArrayView:
 
             advanced = np.array(advanced[::-1])
             reshape_advanced = np.array(reshape_advanced[::-1])
+            reshape_dim_list = np.array(reshape_dim_list)
             is_non_consecutive = ((advanced[0] and advanced[-1]) and not all(advanced)) or sum(
                 np.logical_xor(advanced, list(advanced[1:]) + [advanced[-1]])
             ) > 2
@@ -237,12 +238,12 @@ class ArrayView:
             print(first_advanced)
             reshape_dim[first_advanced] = True
             print(reshape_dim)
-            # reshape_dim = reshape_dim if self.order is OrderType.COLUMN_MAJOR else reshape_dim[::-1]
             reshape_dim = reshape_dim[::-1]
             print(reshape_dim)
             intermediary_user_dims = np.where(reshape_dim, index_dim_list, 1)
             print(intermediary_user_dims)
-            advanced_len = index_dim_list[first_advanced]
+            # advanced_len = index_dim_list[first_advanced]
+            advanced_len = index_dim_list[::-1][first_advanced]
             print(advanced_len)
             if is_non_consecutive:
                 # if non-consecutive special indicies
@@ -254,6 +255,9 @@ class ArrayView:
                 )
                 print(intermediary_user_dims)
             user_dim_prod = array(list(np.cumprod(intermediary_user_dims) // intermediary_user_dims))
+            # user_dim_prod = list(np.cumprod(intermediary_user_dims) // intermediary_user_dims)
+            # user_dim_prod = array(list(np.cumprod(user_dim_prod) // user_dim_prod))
+
             print(f"advanced = {advanced}")
             print(f"reshape_advanced = {reshape_advanced}")
             print(f"index_dim_list = {index_dim_list}")
@@ -261,12 +265,11 @@ class ArrayView:
             print(f"intermediary_user_dims = {intermediary_user_dims}")
             print(f"user_dim_prod = {user_dim_prod}")
 
-            reshape_dim_list = np.array(reshape_dim_list)
             ret_size = np.prod(np.array(index_dim_list)[reshape_dim])
             reshape_dim = array(list(reshape_dim))
-            advanced = array(list(advanced[::-1]))
             print(f"ret_size = {ret_size}")
 
+            advanced = array(list(advanced[::-1]))
             index_dim = array(list(index_dim_list))
             repMsg = generic_msg(
                 cmd="arrayViewMixedIndex",
@@ -288,9 +291,9 @@ class ArrayView:
             )
             print(f"is_non_consecutive = {is_non_consecutive}")
             if is_non_consecutive:
-                print([reshape_dim_list[::-1][reshape_advanced][0]])
+                print([advanced_len])
                 print(list(reshape_dim_list[::-1][~reshape_advanced]))
-                reshape_dim_list = [reshape_dim_list[::-1][reshape_advanced][0]] + list(
+                reshape_dim_list = [advanced_len] + list(
                     reshape_dim_list[::-1][~reshape_advanced]
                 )
                 # reshape_dim = reshape_dim[::-1] if self.order is OrderType.COLUMN_MAJOR else reshape_dim
