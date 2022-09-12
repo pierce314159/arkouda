@@ -245,6 +245,7 @@ class ArrayView:
             # advanced_len = index_dim_list[first_advanced]
             advanced_len = index_dim_list[::-1][first_advanced]
             print(advanced_len)
+            user_dim_prod = array(list(np.cumprod(intermediary_user_dims) // intermediary_user_dims))
             if is_non_consecutive:
                 # if non-consecutive special indicies
                 # remove first special and add len special to front
@@ -254,9 +255,16 @@ class ArrayView:
                     + list(intermediary_user_dims[(first_advanced + 1) :])
                 )
                 print(intermediary_user_dims)
-            user_dim_prod = array(list(np.cumprod(intermediary_user_dims) // intermediary_user_dims))
-            # user_dim_prod = list(np.cumprod(intermediary_user_dims) // intermediary_user_dims)
-            # user_dim_prod = array(list(np.cumprod(user_dim_prod) // user_dim_prod))
+                if (advanced[0] and advanced[1]) and advanced_len % 2 == 0:
+                    print("DID WE DO IT??")
+                    user_dim_prod = list(np.cumprod(intermediary_user_dims) // intermediary_user_dims)
+                    user_dim_prod = array(list(np.cumprod(user_dim_prod) // user_dim_prod))
+                else:
+                    user_dim_prod = array(list(np.cumprod(intermediary_user_dims) // intermediary_user_dims))
+
+            print(f"FORWARD = {np.cumprod(intermediary_user_dims) // intermediary_user_dims}")
+            print(f"BACKWARD = {np.cumprod(intermediary_user_dims[::-1]) // intermediary_user_dims[::-1]}")
+            print(f"np.cumprod(user_dim_prod) // user_dim_prod = {np.cumprod(user_dim_prod.to_list()) // user_dim_prod.to_list()}")
 
             print(f"advanced = {advanced}")
             print(f"reshape_advanced = {reshape_advanced}")
