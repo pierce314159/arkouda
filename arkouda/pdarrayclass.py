@@ -95,6 +95,9 @@ def parse_single_value(msg: str) -> object:
 
     dtname, value = msg.split(maxsplit=1)
     mydtype = dtype(dtname)
+    if mydtype == "bigint":
+        # we have to strip off quotes
+        return int(value[1:-1])
     if mydtype == npbool:
         if value == "True":
             return mydtype.type(True)
@@ -169,7 +172,7 @@ class pdarray:
     def __init__(
         self,
         name: str,
-        mydtype: np.dtype,
+        mydtype: Union[np.dtype, str],
         size: int_scalars,
         ndim: int_scalars,
         shape: Sequence[int],
@@ -1767,7 +1770,6 @@ class pdarray:
 #   only after:
 #       all values have been checked by python module and...
 #       server has created pdarray already before this is called
-#       server has created pdarray already befroe this is called
 @typechecked
 def create_pdarray(repMsg: str) -> pdarray:
     """

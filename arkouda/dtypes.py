@@ -16,6 +16,7 @@ __all__ = [
     "uint8",
     "uint64",
     "str_",
+    # "object_",
     "intTypes",
     "bitType",
     "check_np_dtype",
@@ -42,13 +43,17 @@ NUMBER_FORMAT_STRINGS = {
     "uint64": "{:n}",
 }
 
-dtype = np.dtype
+
+def dtype(x): return x if x == 'bigint' else np.dtype(x)
+
+
 bool = np.dtype(bool)
 int64 = np.dtype(np.int64)
 float64 = np.dtype(np.float64)
 uint8 = np.dtype(np.uint8)
 uint64 = np.dtype(np.uint64)
 str_ = np.dtype(np.str_)
+# object_ = np.dtype(np.object_)
 npstr = np.dtype(str)
 intTypes = frozenset((int64, uint64, uint8))
 bitType = uint64
@@ -100,6 +105,7 @@ class DType(Enum):
     STR = "str"
     UINT8 = "uint8"
     UINT64 = "uint64"
+    # OBJECT = "object"
 
     def __str__(self) -> str:  # type: ignore
         """

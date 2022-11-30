@@ -12,6 +12,7 @@ module IndexingMsg
     use MultiTypeSymbolTable;
 
     use CommAggregation;
+    use BigInteger;
 
     use FileIO;
     use List;
@@ -248,6 +249,12 @@ module IndexingMsg
                  imLogger.debug(getModuleName(),getRoutineName(),getLineNumber(),repMsg);
                  return new MsgTuple(repMsg, MsgType.NORMAL); 
              }
+             when (DType.BigInt) {
+                 var e = toSymEntry(gEnt,bigint);
+                 repMsg = "item %s %t".format(dtype2str(e.dtype),e.a[idx]);
+                 imLogger.debug(getModuleName(),getRoutineName(),getLineNumber(),repMsg);
+                 return new MsgTuple(repMsg, MsgType.NORMAL); 
+             }
              otherwise {
                  var errorMsg = notImplementedError(pn,dtype2str(gEnt.dtype));
                  imLogger.error(getModuleName(),getRoutineName(),getLineNumber(),errorMsg);
@@ -312,6 +319,9 @@ module IndexingMsg
             when (DType.Bool) {
                 return sliceHelper(bool);
             }
+            // when (DType.BigInt) {
+            //     return sliceHelper(bigint);
+            // }
             otherwise {
                 var errorMsg = notImplementedError(pn,dtype2str(gEnt.dtype));
                 imLogger.error(getModuleName(),getRoutineName(),getLineNumber(),errorMsg);
@@ -480,6 +490,15 @@ module IndexingMsg
             when (DType.Bool, DType.Bool) {
                 return ivBoolHelper(bool);
             }
+            // when (DType.BigInt, DType.Int64) {
+            //     return ivInt64Helper(bigint);
+            // }
+            // when (DType.BigInt, DType.UInt64) {
+            //     return ivUInt64Helper(bigint);
+            // }
+            // when (DType.BigInt, DType.Bool) {
+            //     return ivBoolHelper(bigint);
+            // }
             otherwise {
                 var errorMsg = notImplementedError(pn,
                                        "("+dtype2str(gX.dtype)+","+dtype2str(gIV.dtype)+")");

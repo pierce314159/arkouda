@@ -9,6 +9,7 @@ module OperatorMsg
     use Reflection;
     use ServerErrors;
     use BinOp;
+    use BigInteger;
 
     use MultiTypeSymbolTable;
     use MultiTypeSymEntry;
@@ -242,6 +243,33 @@ module OperatorMsg
               var e = st.addEntry(rname, l.size, int);
               return doBinOpvv(l, r, e, op, rname, pn, st);
             }
+          }
+          when (DType.BigInt, DType.BigInt) {
+            var l = toSymEntry(left,bigint);
+            var r = toSymEntry(right,bigint);
+            if op == "+" {
+              var e = st.addEntry(rname, new shared SymEntry(l.a + r.a));
+              var repMsg = "created %s".format(st.attrib(rname));
+              return new MsgTuple(repMsg, MsgType.NORMAL);
+            }
+            if op == "-" {
+              var e = st.addEntry(rname, new shared SymEntry(l.a - r.a));
+              var repMsg = "created %s".format(st.attrib(rname));
+              return new MsgTuple(repMsg, MsgType.NORMAL);
+            }
+
+
+            // if boolOps.contains(op) {
+            //   var e = st.addEntry(rname, l.size, bool);
+            //   return doBinOpvv(l, r, e, op, rname, pn, st);
+            // }
+            // else if op == "/" {
+            //   // TODO idk what to do for true divide
+            //   var e = st.addEntry(rname, l.size, real);
+            //   return doBinOpvv(l, r, e, op, rname, pn, st);
+            // }
+            // var e = st.addEntry(rname, l.size, bigint);
+            // return doBinOpvv(l, r, e, op, rname, pn, st);
           }
         }
         var errorMsg = unrecognizedTypeError(pn, "("+dtype2str(left.dtype)+","+dtype2str(right.dtype)+")");

@@ -8,6 +8,7 @@ from typeguard import typechecked
 from arkouda.client import generic_msg
 from arkouda.dtypes import NUMBER_FORMAT_STRINGS, DTypes, NumericDTypes, SeriesDTypes
 from arkouda.dtypes import dtype as akdtype
+from arkouda.dtypes import uint64 as akuint64
 from arkouda.dtypes import (
     float64,
     get_byteorder,
@@ -241,23 +242,32 @@ def array(
 
     # If not strings, then check that dtype is supported in arkouda
     if a.dtype.name not in DTypes:
-        raise RuntimeError(f"Unhandled dtype {a.dtype}")
-    # Do not allow arrays that are too large
-    size = a.size
-    if (size * a.itemsize) > maxTransferBytes:
-        raise RuntimeError("Array exceeds allowed transfer size. Increase ak.maxTransferBytes to allow")
-    # Pack binary array data into a bytes object with a command header
-    # including the dtype and size. If the server has a different byteorder
-    # than our numpy array we need to swap to match since the server expects
-    # native endian bytes
-    aview = _array_memview(a)
-    rep_msg = generic_msg(
-        cmd="array",
-        args={"dtype": a.dtype.name, "size": size, "seg_string": False},
-        payload=aview,
-        send_binary=True,
-    )
-    return create_pdarray(rep_msg) if dtype is None else akcast(create_pdarray(rep_msg), dtype)
+        try:
+            # attempt to break bigint into multiple uint64 arrays
+            uint_arrays = []
+            while any(a != 0):
+                low, a = a % 2**64, a // 2**64
+                uint_arrays.append(array(np.uint(low), dtype=akuint64))
+            return big_int_from_arrays(uint_arrays[::-1])
+        except TypeError:
+            raise RuntimeError(f"Unhandled dtype {a.dtype}")
+    else:
+        # Do not allow arrays that are too large
+        size = a.size
+        if (size * a.itemsize) > maxTransferBytes:
+            raise RuntimeError("Array exceeds allowed transfer size. Increase ak.maxTransferBytes to allow")
+        # Pack binary array data into a bytes object with a command header
+        # including the dtype and size. If the server has a different byteorder
+        # than our numpy array we need to swap to match since the server expects
+        # native endian bytes
+        aview = _array_memview(a)
+        rep_msg = generic_msg(
+            cmd="array",
+            args={"dtype": a.dtype.name, "size": size, "seg_string": False},
+            payload=aview,
+            send_binary=True,
+        )
+        return create_pdarray(rep_msg) if dtype is None else akcast(create_pdarray(rep_msg), dtype)
 
 
 def _array_memview(a) -> memoryview:
@@ -268,6 +278,15 @@ def _array_memview(a) -> memoryview:
     else:
         return memoryview(a)
 
+
+def big_int_from_arrays(arrays):
+    # do argument validation to ensure list of uints
+    a = create_pdarray(
+        generic_msg(cmd="big_int_creation", args={"size": len(arrays), "arrays": arrays, "len": arrays[0].size})
+    )
+    # print(a)
+    # print(a.dtype)
+    return a
 
 @typechecked
 def zeros(size: Union[int_scalars, str], dtype: Union[np.dtype, type, str] = float64) -> pdarray:
