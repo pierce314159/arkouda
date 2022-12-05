@@ -253,7 +253,7 @@ module IndexingMsg
                  var e = toSymEntry(gEnt,bigint);
                  repMsg = "item %s %t".format(dtype2str(e.dtype),e.a[idx]);
                  imLogger.debug(getModuleName(),getRoutineName(),getLineNumber(),repMsg);
-                 return new MsgTuple(repMsg, MsgType.NORMAL); 
+                 return new MsgTuple(repMsg, MsgType.NORMAL);
              }
              otherwise {
                  var errorMsg = notImplementedError(pn,dtype2str(gEnt.dtype));
@@ -319,9 +319,21 @@ module IndexingMsg
             when (DType.Bool) {
                 return sliceHelper(bool);
             }
-            // when (DType.BigInt) {
-            //     return sliceHelper(bigint);
-            // }
+            when (DType.BigInt) {
+                var e = toSymEntry(gEnt,bigint);
+                var tmp = makeDistArray(slice.size, bigint);
+                ref ea = e.a;
+                // TODO figure out a way to copy more efficiently attempting
+                // to use an aggregator runs into issues with unordered copy
+                forall (elt,j) in zip(tmp, slice) {
+                    elt = ea[j];
+                }
+                var a = st.addEntry(rname, new shared SymEntry(tmp));
+                var repMsg = "created " + st.attrib(rname);
+                imLogger.debug(getModuleName(),getRoutineName(),getLineNumber(),repMsg);
+                return new MsgTuple(repMsg, MsgType.NORMAL);
+
+            }
             otherwise {
                 var errorMsg = notImplementedError(pn,dtype2str(gEnt.dtype));
                 imLogger.error(getModuleName(),getRoutineName(),getLineNumber(),errorMsg);
@@ -490,9 +502,40 @@ module IndexingMsg
             when (DType.Bool, DType.Bool) {
                 return ivBoolHelper(bool);
             }
-            // when (DType.BigInt, DType.Int64) {
-            //     return ivInt64Helper(bigint);
-            // }
+            when (DType.BigInt, DType.Int64) {
+                var e = toSymEntry(gX,bigint);
+                var iv = toSymEntry(gIV,int);
+                if (e.size == 0) && (iv.size == 0) {
+                    var a = st.addEntry(rname, new shared SymEntry(makeDistArray(0, bigint)));
+                    var repMsg = "created " + st.attrib(rname);
+                    imLogger.debug(getModuleName(),getRoutineName(),getLineNumber(),repMsg);
+                    return new MsgTuple(repMsg, MsgType.NORMAL);
+                }
+                var ivMin = min reduce iv.a;
+                var ivMax = max reduce iv.a;
+                if ivMin < 0 {
+                    var errorMsg = "Error: %s: OOBindex %i < 0".format(pn,ivMin);
+                    imLogger.error(getModuleName(),getRoutineName(),getLineNumber(),errorMsg);
+                    return new MsgTuple(errorMsg,MsgType.ERROR);
+                }
+                if ivMax >= e.size {
+                    var errorMsg = "Error: %s: OOBindex %i > %i".format(pn,ivMin,e.size-1);
+                    imLogger.error(getModuleName(),getRoutineName(),getLineNumber(),errorMsg);
+                    return new MsgTuple(errorMsg,MsgType.ERROR);
+                }
+                var tmp = makeDistArray(iv.size, bigint);
+                ref a2 = e.a;
+                ref iva = iv.a;
+                forall (a1,idx) in zip(tmp,iva) {
+                    // TODO find a way to use aggregators
+                    a1 = a2[idx];
+                }
+                var a = st.addEntry(rname, new shared SymEntry(tmp));
+
+                var repMsg =  "created " + st.attrib(rname);
+                imLogger.debug(getModuleName(),getRoutineName(),getLineNumber(),repMsg);
+                return new MsgTuple(repMsg, MsgType.NORMAL);
+            }
             // when (DType.BigInt, DType.UInt64) {
             //     return ivUInt64Helper(bigint);
             // }
