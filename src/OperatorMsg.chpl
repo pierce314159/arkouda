@@ -263,17 +263,6 @@ module OperatorMsg
             var e = st.addEntry(rname, new shared SymEntry(doBigIntBinOpvv(l, r, op)));
             var repMsg = "created %s".format(st.attrib(rname));
             return new MsgTuple(repMsg, MsgType.NORMAL);
-
-            // if op == "+" {
-            //   var e = st.addEntry(rname, new shared SymEntry(l.a + r.a));
-            //   var repMsg = "created %s".format(st.attrib(rname));
-            //   return new MsgTuple(repMsg, MsgType.NORMAL);
-            // }
-            // if op == "-" {
-            //   var e = st.addEntry(rname, new shared SymEntry(l.a - r.a));
-            //   var repMsg = "created %s".format(st.attrib(rname));
-            //   return new MsgTuple(repMsg, MsgType.NORMAL);
-            // }
           }
         }
         var errorMsg = unrecognizedTypeError(pn, "("+dtype2str(left.dtype)+","+dtype2str(right.dtype)+")");

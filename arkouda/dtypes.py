@@ -16,7 +16,7 @@ __all__ = [
     "uint8",
     "uint64",
     "str_",
-    # "object_",
+    "bigint",
     "intTypes",
     "bitType",
     "check_np_dtype",
@@ -53,7 +53,7 @@ float64 = np.dtype(np.float64)
 uint8 = np.dtype(np.uint8)
 uint64 = np.dtype(np.uint64)
 str_ = np.dtype(np.str_)
-# object_ = np.dtype(np.object_)
+bigint = "bigint"
 npstr = np.dtype(str)
 intTypes = frozenset((int64, uint64, uint8))
 bitType = uint64
@@ -71,6 +71,7 @@ int_scalars = Union[
     np.uint16,
     np.uint32,
     np.uint64,
+    bigint,
 ]
 numeric_scalars = Union[float_scalars, int_scalars]
 numeric_and_bool_scalars = Union[bool_scalars, numeric_scalars]
@@ -86,6 +87,7 @@ numpy_scalars = Union[
     np.uint16,
     np.uint32,
     np.uint64,
+    bigint,
 ]
 str_scalars = Union[str, np.str_]
 all_scalars = Union[bool_scalars, numeric_scalars, numpy_scalars, str_scalars]
@@ -105,7 +107,7 @@ class DType(Enum):
     STR = "str"
     UINT8 = "uint8"
     UINT64 = "uint64"
-    # OBJECT = "object"
+    BIGINT = "bigint"
 
     def __str__(self) -> str:  # type: ignore
         """
@@ -132,6 +134,7 @@ ARKOUDA_SUPPORTED_INTS = (
     np.uint16,
     np.uint32,
     np.uint64,
+    bigint,
 )
 ARKOUDA_SUPPORTED_FLOATS = (float, np.float64)
 ARKOUDA_SUPPORTED_NUMBERS = (
@@ -146,6 +149,7 @@ ARKOUDA_SUPPORTED_NUMBERS = (
     np.uint16,
     np.uint32,
     np.uint64,
+    bigint,
 )
 ARKOUDA_SUPPORTED_DTYPES = frozenset(
     [member.value for _, member in DType.__members__.items()]
@@ -183,7 +187,7 @@ def isSupportedNumber(num):
 
 def _as_dtype(dt) -> np.dtype:
     if not isinstance(dt, np.dtype):
-        return np.dtype(dt)
+        return dtype(dt)
     return dt
 
 

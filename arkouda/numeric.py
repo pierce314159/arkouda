@@ -106,17 +106,18 @@ def cast(
     # typechecked decorator guarantees no other case
 
     dt = _as_dtype(dt)
+    dt_name = dt.name if dt != 'bigint' else dt
     cmd = "cast"
     repMsg = generic_msg(
         cmd=cmd,
         args={
             "name": name,
             "objType": objtype,
-            "targetDtype": dt.name,
+            "targetDtype": dt_name,
             "opt": errors.name,
         },
     )
-    if dt.name.startswith("str"):
+    if dt_name.startswith("str"):
         return Strings.from_parts(*(type_cast(str, repMsg).split("+")))
     else:
         if errors == ErrorMode.return_validity:

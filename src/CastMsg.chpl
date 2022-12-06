@@ -9,6 +9,7 @@ module CastMsg {
   use ServerErrorStrings;
   use ServerConfig;
   use Cast;
+  use BigInteger;
 
   private config const logLevel = ServerConfig.logLevel;
   const castLogger = new Logger(logLevel);
@@ -79,6 +80,9 @@ module CastMsg {
             }
             when (DType.UInt64, "string") {
                 return new MsgTuple(castGenSymEntryToString(gse, st, uint), MsgType.NORMAL);
+            }
+            when (DTypecle.UInt64, "bigint") {
+                return new MsgTuple(castGenSymEntryToBigInt(gse, st, uint), MsgType.NORMAL);
             }
             when (DType.Float64, "int64") {
                 return new MsgTuple(castGenSymEntry(gse, st, real, int), MsgType.NORMAL);                  
