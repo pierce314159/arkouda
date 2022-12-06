@@ -247,29 +247,33 @@ module OperatorMsg
           when (DType.BigInt, DType.BigInt) {
             var l = toSymEntry(left,bigint);
             var r = toSymEntry(right,bigint);
-            // if boolOps.contains(op) {
-            //   // call bigint specific func which returns distr bool array
-            //   var e = st.addEntry(rname, l.size, bool);
-            //   return doBinOpvv(l, r, e, op, rname, pn, st);
-            // }
+            if boolOps.contains(op) {
+              // call bigint specific func which returns distr bool array
+              var e = st.addEntry(rname, new shared SymEntry(doBigIntBinOpvvBoolReturn(l, r, op)));
+              var repMsg = "created %s".format(st.attrib(rname));
+              return new MsgTuple(repMsg, MsgType.NORMAL);
+            }
             // else if op == "/" {
             //   // TODO idk what to do for true divide
             //   var e = st.addEntry(rname, l.size, real);
             //   return doBinOpvv(l, r, e, op, rname, pn, st);
             // }
-            // // call bigint specific func which returns dist bigint array
-            // var e = st.addEntry(rname, l.size, bigint);
-            // return doBinOpvv(l, r, e, op, rname, pn, st);
-            if op == "+" {
-              var e = st.addEntry(rname, new shared SymEntry(l.a + r.a));
-              var repMsg = "created %s".format(st.attrib(rname));
-              return new MsgTuple(repMsg, MsgType.NORMAL);
-            }
-            if op == "-" {
-              var e = st.addEntry(rname, new shared SymEntry(l.a - r.a));
-              var repMsg = "created %s".format(st.attrib(rname));
-              return new MsgTuple(repMsg, MsgType.NORMAL);
-            }
+
+            // call bigint specific func which returns dist bigint array
+            var e = st.addEntry(rname, new shared SymEntry(doBigIntBinOpvv(l, r, op)));
+            var repMsg = "created %s".format(st.attrib(rname));
+            return new MsgTuple(repMsg, MsgType.NORMAL);
+
+            // if op == "+" {
+            //   var e = st.addEntry(rname, new shared SymEntry(l.a + r.a));
+            //   var repMsg = "created %s".format(st.attrib(rname));
+            //   return new MsgTuple(repMsg, MsgType.NORMAL);
+            // }
+            // if op == "-" {
+            //   var e = st.addEntry(rname, new shared SymEntry(l.a - r.a));
+            //   var repMsg = "created %s".format(st.attrib(rname));
+            //   return new MsgTuple(repMsg, MsgType.NORMAL);
+            // }
           }
         }
         var errorMsg = unrecognizedTypeError(pn, "("+dtype2str(left.dtype)+","+dtype2str(right.dtype)+")");
