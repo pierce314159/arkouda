@@ -1028,6 +1028,33 @@ module BinOp
   }
 
   proc doBigIntBinOpvv(l, r, op: string) throws {
+    if l.etype == bigint && (r.etype == bigint || r.etype == int || r.etype == uint) {
+      // first we try the ops that only work with a
+      // left hand side of bigint
+      if r.etype != bigint {
+        // can't shift a bigint by a bigint
+        select op {
+          when "<<" {
+            return l.a << r.a;
+          }
+          when ">>" {
+            return l.a >> r.a;
+          }
+          // when "<<<" {
+          //   return rotl(l.a, r.a);
+          // }
+          // when ">>>" {
+          //   return rotr(l.a, r.a);
+          // }
+        }
+      }
+      if op == "**" {
+        if || reduce (r.a<0) {
+          throw new Error("Attempt to exponentiate base of type BigInt to negative exponent");
+        }
+        return l.a**r.a;
+      }
+    }
     if (l.etype == bigint && r.etype == bigint) ||
        (l.etype == bigint && (r.etype == int || r.etype == uint)) ||
        (r.etype == bigint && (l.etype == int || l.etype == uint)) {
@@ -1055,18 +1082,6 @@ module BinOp
           [(ei,li,ri) in zip(tmp,la,ra)] ei = if ri != 0 then li%ri else 0:bigint;
           return tmp;
         }
-        // when "<<" {
-        //   return l.a << r.a;
-        // }
-        // when ">>" {
-        //   return l.a >> r.a;
-        // }
-        // when "<<<" {
-        //   return rotl(l.a, r.a);
-        // }
-        // when ">>>" {
-        //   return rotr(l.a, r.a);
-        // }
         when "&" {
           return l.a & r.a;
         }
@@ -1076,54 +1091,36 @@ module BinOp
         when "^" {
           return l.a ^ r.a;
         }
-        // when "**" {
-        //   if || reduce (r.a<0){
-        //     //instead of error, could we paste the below code but of type float?
-        //     var errorMsg = "Attempt to exponentiate base of type Int64 to negative exponent";
-        //     omLogger.error(getModuleName(),getRoutineName(),getLineNumber(),errorMsg);
-        //     return new MsgTuple(errorMsg, MsgType.ERROR);
-        //   }
-        //   return l.a**r.a;
-        // }
         otherwise {
           throw new Error("Unsupported operation: " + op);
         }
       }
     }
+    else if (l.etype == bigint && r.etype == bool) || (l.etype == bool && r.etype == bigint) {
+      select op {
+          when "+" {
+            // Since we don't know which of `l` or `r` is the bigint and which is the `bool`,
+            // we can just cast both to bigint, which will be a noop for the vector that is
+            // already `bigint`
+            return l.a:bigint + r.a:bigint;
+          }
+          when "-" {
+            return l.a:bigint - r.a:bigint;
+          }
+          when "*" {
+            return l.a:bigint * r.a:bigint;
+          }
+          otherwise {
+            throw new Error("Unsupported operation: " + op);
+          }
+        }
+    }
     else {
       throw new Error("Unsupported operation: " + op);
     }
-    // else if ((l.etype == int && r.etype == bool) || (l.etype == bool && r.etype == int)) {
-    //   select op {
-    //       when "+" {
-    //         // Since we don't know which of `l` or `r` is the int and which is the `bool`,
-    //         // we can just cast both to int, which will be a noop for the vector that is
-    //         // already `int`
-    //         e.a = l.a:int + r.a:int;
-    //       }
-    //       when "-" {
-    //         e.a = l.a:int - r.a:int;
-    //       }
-    //       when "*" {
-    //         e.a = l.a:int * r.a:int;
-    //       }
-    //       otherwise {
-    //         var errorMsg = notImplementedError(pn,l.dtype,op,r.dtype);
-    //         omLogger.error(getModuleName(),getRoutineName(),getLineNumber(),errorMsg);
-    //         return new MsgTuple(errorMsg, MsgType.ERROR);
-    //       }
-    //     }
-    //   var repMsg = "created %s".format(st.attrib(rname));
-    //   return new MsgTuple(repMsg, MsgType.NORMAL);
-    // }
   }
 
   proc doBigIntBinOpvvBoolReturn(l, r, op: string) throws {
-    // Since we know that the result type is a boolean, we know
-    // that it uses a boolean operator (<, <=, etc.)
-    // All types support the same binary operations when the resultant
-    // type is bool and `l` and `r` are not both boolean, so this does
-    // not need to be specialized for each case.
     select op {
       when "<" {
         return l.a < r.a;
