@@ -253,12 +253,90 @@ module OperatorMsg
               var repMsg = "created %s".format(st.attrib(rname));
               return new MsgTuple(repMsg, MsgType.NORMAL);
             }
-            // else if op == "/" {
-            //   // TODO idk what to do for true divide
-            //   var e = st.addEntry(rname, l.size, real);
-            //   return doBinOpvv(l, r, e, op, rname, pn, st);
-            // }
-
+            // call bigint specific func which returns dist bigint array
+            var e = st.addEntry(rname, new shared SymEntry(doBigIntBinOpvv(l, r, op)));
+            var repMsg = "created %s".format(st.attrib(rname));
+            return new MsgTuple(repMsg, MsgType.NORMAL);
+          }
+          when (DType.BigInt, DType.Int64) {
+            var l = toSymEntry(left,bigint);
+            var r = toSymEntry(right,int);
+            if boolOps.contains(op) {
+              // call bigint specific func which returns distr bool array
+              var e = st.addEntry(rname, new shared SymEntry(doBigIntBinOpvvBoolReturn(l, r, op)));
+              var repMsg = "created %s".format(st.attrib(rname));
+              return new MsgTuple(repMsg, MsgType.NORMAL);
+            }
+            // call bigint specific func which returns dist bigint array
+            var e = st.addEntry(rname, new shared SymEntry(doBigIntBinOpvv(l, r, op)));
+            var repMsg = "created %s".format(st.attrib(rname));
+            return new MsgTuple(repMsg, MsgType.NORMAL);
+          }
+          when (DType.BigInt, DType.UInt64) {
+            var l = toSymEntry(left,bigint);
+            var r = toSymEntry(right,uint);
+            if boolOps.contains(op) {
+              // call bigint specific func which returns distr bool array
+              var e = st.addEntry(rname, new shared SymEntry(doBigIntBinOpvvBoolReturn(l, r, op)));
+              var repMsg = "created %s".format(st.attrib(rname));
+              return new MsgTuple(repMsg, MsgType.NORMAL);
+            }
+            // call bigint specific func which returns dist bigint array
+            var e = st.addEntry(rname, new shared SymEntry(doBigIntBinOpvv(l, r, op)));
+            var repMsg = "created %s".format(st.attrib(rname));
+            return new MsgTuple(repMsg, MsgType.NORMAL);
+          }
+          when (DType.BigInt, DType.Bool) {
+            var l = toSymEntry(left,bigint);
+            var r = toSymEntry(right,bool);
+            if boolOps.contains(op) {
+              // call bigint specific func which returns distr bool array
+              var e = st.addEntry(rname, new shared SymEntry(doBigIntBinOpvvBoolReturn(l, r, op)));
+              var repMsg = "created %s".format(st.attrib(rname));
+              return new MsgTuple(repMsg, MsgType.NORMAL);
+            }
+            // call bigint specific func which returns dist bigint array
+            var e = st.addEntry(rname, new shared SymEntry(doBigIntBinOpvv(l, r, op)));
+            var repMsg = "created %s".format(st.attrib(rname));
+            return new MsgTuple(repMsg, MsgType.NORMAL);
+          }
+          when (DType.Int64, DType.BigInt) {
+            var l = toSymEntry(left,int);
+            var r = toSymEntry(right,bigint);
+            if boolOps.contains(op) {
+              // call bigint specific func which returns distr bool array
+              var e = st.addEntry(rname, new shared SymEntry(doBigIntBinOpvvBoolReturn(l, r, op)));
+              var repMsg = "created %s".format(st.attrib(rname));
+              return new MsgTuple(repMsg, MsgType.NORMAL);
+            }
+            // call bigint specific func which returns dist bigint array
+            var e = st.addEntry(rname, new shared SymEntry(doBigIntBinOpvv(l, r, op)));
+            var repMsg = "created %s".format(st.attrib(rname));
+            return new MsgTuple(repMsg, MsgType.NORMAL);
+          }
+          when (DType.UInt64, DType.BigInt) {
+            var l = toSymEntry(left,uint);
+            var r = toSymEntry(right,bigint);
+            if boolOps.contains(op) {
+              // call bigint specific func which returns distr bool array
+              var e = st.addEntry(rname, new shared SymEntry(doBigIntBinOpvvBoolReturn(l, r, op)));
+              var repMsg = "created %s".format(st.attrib(rname));
+              return new MsgTuple(repMsg, MsgType.NORMAL);
+            }
+            // call bigint specific func which returns dist bigint array
+            var e = st.addEntry(rname, new shared SymEntry(doBigIntBinOpvv(l, r, op)));
+            var repMsg = "created %s".format(st.attrib(rname));
+            return new MsgTuple(repMsg, MsgType.NORMAL);
+          }
+          when (DType.Bool, DType.BigInt) {
+            var l = toSymEntry(left,bool);
+            var r = toSymEntry(right,bigint);
+            if boolOps.contains(op) {
+              // call bigint specific func which returns distr bool array
+              var e = st.addEntry(rname, new shared SymEntry(doBigIntBinOpvvBoolReturn(l, r, op)));
+              var repMsg = "created %s".format(st.attrib(rname));
+              return new MsgTuple(repMsg, MsgType.NORMAL);
+            }
             // call bigint specific func which returns dist bigint array
             var e = st.addEntry(rname, new shared SymEntry(doBigIntBinOpvv(l, r, op)));
             var repMsg = "created %s".format(st.attrib(rname));

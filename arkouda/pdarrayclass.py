@@ -24,6 +24,7 @@ from arkouda.dtypes import (
 from arkouda.dtypes import str_ as akstr_
 from arkouda.dtypes import translate_np_dtype
 from arkouda.dtypes import uint64 as akuint64
+from arkouda.dtypes import bigint
 from arkouda.infoclass import information, list_registry, pretty_print_information
 from arkouda.logger import getArkoudaLogger
 
@@ -95,7 +96,7 @@ def parse_single_value(msg: str) -> object:
 
     dtname, value = msg.split(maxsplit=1)
     mydtype = dtype(dtname)
-    if mydtype == "bigint":
+    if mydtype == bigint:
         # we have to strip off quotes
         return int(value[1:-1])
     if mydtype == npbool:

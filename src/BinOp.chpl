@@ -1028,96 +1028,98 @@ module BinOp
   }
 
   proc doBigIntBinOpvv(l, r, op: string) throws {
+    var max_bits = max(l.max_bits, r.max_bits);
+    var modBy = 1:bigint;
+    var has_max_bits = max_bits != -1;
+    if has_max_bits {
+      modBy <<= max_bits;
+    }
+    ref la = l.a;
+    ref ra = r.a;
+    var tmp = makeDistArray(la.size, bigint);
+
+    // had to create bigint specific BinOp procs which return
+    // the distributed array because we need it at SymEntry creation time
+    if l.etype == bigint && r.etype == bigint {
+      // first we try the ops that only work with
+      // both being bigint
+      select op {
+        when "&" {
+          tmp = la & ra;
+        }
+        when "|" {
+          tmp = la | ra;
+        }
+        when "^" {
+          tmp = la ^ ra;
+        }
+        when "/" {
+          tmp = la / ra;
+        }
+      }
+    }
     if l.etype == bigint && (r.etype == bigint || r.etype == int || r.etype == uint) {
-      // first we try the ops that only work with a
+      // then we try the ops that only work with a
       // left hand side of bigint
       if r.etype != bigint {
         // can't shift a bigint by a bigint
         select op {
           when "<<" {
-            return l.a << r.a;
+            tmp = la << ra;
           }
           when ">>" {
-            return l.a >> r.a;
+            tmp = la >> ra;
           }
           // when "<<<" {
-          //   return rotl(l.a, r.a);
+          //   tmp = rotl(l.a, r.a);
           // }
           // when ">>>" {
-          //   return rotr(l.a, r.a);
+          //   tmp = rotr(l.a, r.a);
           // }
         }
       }
-      if op == "**" {
-        if || reduce (r.a<0) {
-          throw new Error("Attempt to exponentiate base of type BigInt to negative exponent");
+      select op {
+        when "//" { // floordiv
+          [(ei,li,ri) in zip(tmp,la,ra)] ei = if ri != 0 then li/ri else 0:bigint;
         }
-        return l.a**r.a;
+        when "%" { // modulo
+          [(ei,li,ri) in zip(tmp,la,ra)] ei = if ri != 0 then li%ri else 0:bigint;
+        }
+        when "**" {
+          if || reduce (ra<0) {
+            throw new Error("Attempt to exponentiate base of type BigInt to negative exponent");
+          }
+          if has_max_bits {
+            [(ei,li,ri) in zip(tmp,la,ra)] ei.powMod(li, ri, modBy);
+          }
+          else {
+            tmp = la ** ra;
+          }
+        }
       }
     }
     if (l.etype == bigint && r.etype == bigint) ||
-       (l.etype == bigint && (r.etype == int || r.etype == uint)) ||
-       (r.etype == bigint && (l.etype == int || l.etype == uint)) {
+       (l.etype == bigint && (r.etype == int || r.etype == uint || r.etype == bool)) ||
+       (r.etype == bigint && (l.etype == int || l.etype == uint || l.etype == bool)) {
       select op {
         when "+" {
-          return l.a + r.a;
+          tmp = la + ra;
         }
         when "-" {
-          return l.a - r.a;
+          tmp = l.a - r.a;
         }
         when "*" {
-          return l.a * r.a;
-        }
-        when "//" { // floordiv
-          ref la = l.a;
-          ref ra = r.a;
-          var tmp = makeDistArray(la.size, bigint);
-          [(ei,li,ri) in zip(tmp,la,ra)] ei = if ri != 0 then li/ri else 0:bigint;
-          return tmp;
-        }
-        when "%" { // modulo
-          ref la = l.a;
-          ref ra = r.a;
-          var tmp = makeDistArray(la.size, bigint);
-          [(ei,li,ri) in zip(tmp,la,ra)] ei = if ri != 0 then li%ri else 0:bigint;
-          return tmp;
-        }
-        when "&" {
-          return l.a & r.a;
-        }
-        when "|" {
-          return l.a | r.a;
-        }
-        when "^" {
-          return l.a ^ r.a;
-        }
-        otherwise {
-          throw new Error("Unsupported operation: " + op);
+          tmp = l.a * r.a;
         }
       }
     }
-    else if (l.etype == bigint && r.etype == bool) || (l.etype == bool && r.etype == bigint) {
-      select op {
-          when "+" {
-            // Since we don't know which of `l` or `r` is the bigint and which is the `bool`,
-            // we can just cast both to bigint, which will be a noop for the vector that is
-            // already `bigint`
-            return l.a:bigint + r.a:bigint;
-          }
-          when "-" {
-            return l.a:bigint - r.a:bigint;
-          }
-          when "*" {
-            return l.a:bigint * r.a:bigint;
-          }
-          otherwise {
-            throw new Error("Unsupported operation: " + op);
-          }
-        }
+    // else {
+    //   throw new Error("Unsupported operation: " + op);
+    // }
+    if has_max_bits {
+      tmp %= modBy;
     }
-    else {
-      throw new Error("Unsupported operation: " + op);
-    }
+    return tmp;
   }
 
   proc doBigIntBinOpvvBoolReturn(l, r, op: string) throws {
@@ -1147,4 +1149,119 @@ module BinOp
       }
     }
   }
+
+  // proc doBigIntBinOpvs(l, val, op: string) throws {
+  //   // had to create bigint specific BinOp procs which return
+  //   // the distributed array because we need it at SymEntry creation time
+  //   if l.etype == bigint && val.type == bigint {
+  //     // first we try the ops that only work with
+  //     // both being bigint
+  //     select op {
+  //       when "&" {
+  //         return l.a & val;
+  //       }
+  //       when "|" {
+  //         return l.a | val;
+  //       }
+  //       when "^" {
+  //         return l.a ^ val;
+  //       }
+  //       when "/" {
+  //         return l.a / val;
+  //       }
+  //     }
+  //   }
+  //   if l.etype == bigint && (r.etype == bigint || r.etype == int || r.etype == uint) {
+  //     // then we try the ops that only work with a
+  //     // left hand side of bigint
+  //     if r.etype != bigint {
+  //       // can't shift a bigint by a bigint
+  //       select op {
+  //         when "<<" {
+  //           return l.a << val;
+  //         }
+  //         when ">>" {
+  //           return l.a >> val;
+  //         }
+  //         // when "<<<" {
+  //         //   return rotl(l.a, val);
+  //         // }
+  //         // when ">>>" {
+  //         //   return rotr(l.a, val);
+  //         // }
+  //       }
+  //     }
+  //     select op {
+  //       when "//" { // floordiv
+  //         ref la = l.a;
+  //         ref ra = val;
+  //         var tmp = makeDistArray(la.size, bigint);
+  //         [(ei,li,ri) in zip(tmp,la,ra)] ei = if ri != 0 then li/ri else 0:bigint;
+  //         return tmp;
+  //       }
+  //       when "%" { // modulo
+  //         ref la = l.a;
+  //         ref ra = r.a;
+  //         var tmp = makeDistArray(la.size, bigint);
+  //         [(ei,li,ri) in zip(tmp,la,ra)] ei = if ri != 0 then li%ri else 0:bigint;
+  //         return tmp;
+  //       }
+  //       when "**" {
+  //         if || reduce (r.a<0) {
+  //           throw new Error("Attempt to exponentiate base of type BigInt to negative exponent");
+  //         }
+  //         return l.a**r.a;
+  //       }
+  //     }
+  //   }
+  //   if (l.etype == bigint && r.etype == bigint) ||
+  //      (l.etype == bigint && (r.etype == int || r.etype == uint || r.etype == bool)) ||
+  //      (r.etype == bigint && (l.etype == int || l.etype == uint || l.etype == bool)) {
+  //     select op {
+  //       when "+" {
+  //         return l.a + r.a;
+  //       }
+  //       when "-" {
+  //         return l.a - r.a;
+  //       }
+  //       when "*" {
+  //         return l.a * r.a;
+  //       }
+  //       otherwise {
+  //         throw new Error("Unsupported operation: " + op);
+  //       }
+  //     }
+  //   }
+  //   else {
+  //     throw new Error("Unsupported operation: " + op);
+  //   }
+  // }
+
+  // proc doBigIntBinOpvsBoolReturn(l, val, op: string) throws {
+  //   select op {
+  //     when "<" {
+  //       return l.a < r.a;
+  //     }
+  //     when ">" {
+  //       return l.a > r.a;
+  //     }
+  //     when "<=" {
+  //       return l.a <= r.a;
+  //     }
+  //     when ">=" {
+  //       return l.a >= r.a;
+  //     }
+  //     when "==" {
+  //       return l.a == r.a;
+  //     }
+  //     when "!=" {
+  //       return l.a != r.a;
+  //     }
+  //     otherwise {
+  //       // we should never reach this since we only enter this proc
+  //       // if boolOps.contains(op)
+  //       throw new Error("Unsupported operation: " + op);
+  //     }
+  //   }
+  // }
 }
