@@ -44,7 +44,7 @@ NUMBER_FORMAT_STRINGS = {
 }
 
 
-def dtype(x): return x if x == 'bigint' else np.dtype(x)
+def dtype(x): return bigint if x == 'bigint' else np.dtype(x)
 
 
 bool = np.dtype(bool)

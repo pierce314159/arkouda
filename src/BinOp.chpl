@@ -1029,10 +1029,10 @@ module BinOp
 
   proc doBigIntBinOpvv(l, r, op: string) throws {
     var max_bits = max(l.max_bits, r.max_bits);
-    var modBy = 1:bigint;
+    var max_size = 1:bigint;
     var has_max_bits = max_bits != -1;
     if has_max_bits {
-      modBy <<= max_bits;
+      max_size <<= max_bits;
     }
     ref la = l.a;
     ref ra = r.a;
@@ -1078,12 +1078,52 @@ module BinOp
             divideBy <<= ra;
             tmp = la / divideBy;
           }
-          // when "<<<" {
-          //   tmp = rotl(l.a, r.a);
-          // }
-          // when ">>>" {
-          //   tmp = rotr(l.a, r.a);
-          // }
+          when "<<<" {
+            if !has_max_bits {
+              throw new Error("Must set max_bits to rotl");
+            }
+            // return (la << ra) | (la >> (max_bits - ra));
+            tmp = la << ra;
+            var botBits = la;
+            if r.etype == int {
+              var shift_amt = max_bits - ra;
+              // cant just do botBits >>= shift_amt;
+              var divideBy = makeDistArray(la.size, bigint);
+              divideBy = 1:bigint;
+              divideBy <<= shift_amt;
+              botBits = botBits / divideBy;
+              tmp += botBits;
+            }
+            else {
+              var shift_amt = max_bits:uint - ra;
+              botBits >>= shift_amt;
+              tmp += botBits;
+            }
+          }
+          when ">>>" {
+            if !has_max_bits {
+              throw new Error("Must set max_bits to rotr");
+            }
+            // return (la >> ra) | (la << (max_bits - ra));
+            tmp = la;
+            // cant just do tmp >>= ra;
+            var divideBy = makeDistArray(la.size, bigint);
+            divideBy = 1:bigint;
+            divideBy <<= ra;
+            tmp = tmp / divideBy;
+
+            var topBits = la;
+            if r.etype == int {
+              var shift_amt = max_bits - ra;
+              topBits <<= shift_amt;
+              tmp += topBits;
+            }
+            else {
+              var shift_amt = max_bits:uint - ra;
+              topBits <<= shift_amt;
+              tmp += topBits;
+            }
+          }
         }
       }
       select op {
@@ -1100,7 +1140,7 @@ module BinOp
             throw new Error("Attempt to exponentiate base of type BigInt to negative exponent");
           }
           if has_max_bits {
-            [(ei,li,ri) in zip(tmp,la,ra)] ei.powMod(li, ri, modBy);
+            [(ei,li,ri) in zip(tmp,la,ra)] ei.powMod(li, ri, max_size);
           }
           else {
             tmp = la ** ra;
@@ -1127,8 +1167,8 @@ module BinOp
     //   throw new Error("Unsupported operation: " + op);
     // }
     if has_max_bits {
-      // modBy should always be non-zero since we start at 1 and left shift
-      tmp.mod(tmp, modBy);
+      // max_size should always be non-zero since we start at 1 and left shift
+      tmp.mod(tmp, max_size);
     }
     return tmp;
   }

@@ -664,13 +664,21 @@ class OperatorsTest(ArkoudaTest):
         self.assertListEqual((u ^ u_range).to_list(), ak.cast((bi ^ bi_range), ak.uint64).to_list())
 
         # bit shifts: left side must be bigint, right side must be int/uint
-        # TODO add circular shifts
-        # ans = u << u
-        # self.assertListEqual(ans.to_list(), ak.cast((bi << u_range), ak.uint64).to_list())
-        # self.assertListEqual(ans.to_list(), ak.cast((bi << i_range), ak.uint64).to_list())
-        # ans = u >> u
-        # self.assertListEqual(ans.to_list(), ak.cast((bi >> u_range), ak.uint64).to_list())
-        # self.assertListEqual(ans.to_list(), ak.cast((bi >> i_range), ak.uint64).to_list())
+        # TODO also need to test negative shift amount
+        ans = u << u_range
+        self.assertListEqual(ans.to_list(), ak.cast((bi << u_range), ak.uint64).to_list())
+        self.assertListEqual(ans.to_list(), ak.cast((bi << i_range), ak.uint64).to_list())
+
+        ans = u >> u_range
+        self.assertListEqual(ans.to_list(), ak.cast((bi >> u_range), ak.uint64).to_list())
+        self.assertListEqual(ans.to_list(), ak.cast((bi >> i_range), ak.uint64).to_list())
+
+        ans = u.rotl(u_range)
+        self.assertListEqual(ans.to_list(), ak.cast((bi.rotl(u_range)), ak.uint64).to_list())
+        self.assertListEqual(ans.to_list(), ak.cast((bi.rotl(i_range)), ak.uint64).to_list())
+        ans = u.rotr(u_range)
+        self.assertListEqual(ans.to_list(), ak.cast((bi.rotr(u_range)), ak.uint64).to_list())
+        self.assertListEqual(ans.to_list(), ak.cast((bi.rotr(i_range)), ak.uint64).to_list())
 
         # ops where left side has to bigint
         ans = u // u_range
