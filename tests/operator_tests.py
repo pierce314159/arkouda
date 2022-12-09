@@ -485,8 +485,9 @@ class OperatorsTest(ArkoudaTest):
 
         # Test a singleton with a mixed Boolean argument
         a = ak.arange(10)
-        self.assertListEqual([i if i % 2 else i**2 for i in range(10)],
-                             ak.power(a, 2, a % 2 == 0).to_list())
+        self.assertListEqual(
+            [i if i % 2 else i**2 for i in range(10)], ak.power(a, 2, a % 2 == 0).to_list()
+        )
 
         # Test invalid input, negative
         n = np.array([-1.0, -3.0])
@@ -510,7 +511,9 @@ class OperatorsTest(ArkoudaTest):
 
         # Test with a mixed Boolean array
         a = ak.arange(5)
-        self.assertListEqual([i if i % 2 else i**.5 for i in range(5)], ak.sqrt(a, a % 2 == 0).to_list())
+        self.assertListEqual(
+            [i if i % 2 else i**0.5 for i in range(5)], ak.sqrt(a, a % 2 == 0).to_list()
+        )
 
     def test_uint_operation_equals(self):
         u_arr = ak.arange(10, dtype=ak.uint64)
@@ -642,6 +645,76 @@ class OperatorsTest(ArkoudaTest):
         ak.client.pdarrayIterThresh = (
             ak.client.pdarrayIterThreshDefVal
         )  # Don't forget to set this back for other tests.
+
+    def test_bigint_binops(self):
+        # test bigint array with max_bits against an equivalent uint64
+        u = ak.array([0, 1, 2, 2**64 - 3, 2**64 - 2, 2**64 - 1], dtype=ak.uint64)
+        bi = ak.array([0, 1, 2, 2**64 - 3, 2**64 - 2, 2**64 - 1], dtype=ak.bigint, max_bits=64)
+
+        bi_range = ak.arange(6, dtype=ak.bigint)
+        u_range = ak.arange(6, dtype=ak.uint64)
+        i_range = ak.arange(6, dtype=ak.int64)
+        b = u_range % 2 == 0
+
+        # TODO update once to_ndarray supports bigint to not cast into uint
+
+        # logical bit ops: only work if both arguments are bigint
+        self.assertListEqual((u & u_range).to_list(), ak.cast((bi & bi_range), ak.uint64).to_list())
+        self.assertListEqual((u | u_range).to_list(), ak.cast((bi | bi_range), ak.uint64).to_list())
+        self.assertListEqual((u ^ u_range).to_list(), ak.cast((bi ^ bi_range), ak.uint64).to_list())
+
+        # bit shifts: left side must be bigint, right side must be int/uint
+        # TODO add circular shifts
+        # ans = u << u
+        # self.assertListEqual(ans.to_list(), ak.cast((bi << u_range), ak.uint64).to_list())
+        # self.assertListEqual(ans.to_list(), ak.cast((bi << i_range), ak.uint64).to_list())
+        # ans = u >> u
+        # self.assertListEqual(ans.to_list(), ak.cast((bi >> u_range), ak.uint64).to_list())
+        # self.assertListEqual(ans.to_list(), ak.cast((bi >> i_range), ak.uint64).to_list())
+
+        # ops where left side has to bigint
+        ans = u // u_range
+        self.assertListEqual(ans.to_list(), ak.cast((bi // bi_range), ak.uint64).to_list())
+        self.assertListEqual(ans.to_list(), ak.cast((bi // u_range), ak.uint64).to_list())
+        self.assertListEqual(ans.to_list(), ak.cast((bi // i_range), ak.uint64).to_list())
+
+        ans = u % u_range
+        self.assertListEqual(ans.to_list(), ak.cast((bi % bi_range), ak.uint64).to_list())
+        self.assertListEqual(ans.to_list(), ak.cast((bi % u_range), ak.uint64).to_list())
+        self.assertListEqual(ans.to_list(), ak.cast((bi % i_range), ak.uint64).to_list())
+
+        ans = u ** u_range
+        self.assertListEqual(ans.to_list(), ak.cast((bi ** bi_range), ak.uint64).to_list())
+        self.assertListEqual(ans.to_list(), ak.cast((bi ** u_range), ak.uint64).to_list())
+        self.assertListEqual(ans.to_list(), ak.cast((bi ** i_range), ak.uint64).to_list())
+
+        # ops where either side can any of bigint, int, uint, bool
+        ans = u + u_range
+        self.assertListEqual(ans.to_list(), ak.cast((bi + bi_range), ak.uint64).to_list())
+        self.assertListEqual(ans.to_list(), ak.cast((bi + u_range), ak.uint64).to_list())
+        self.assertListEqual(ans.to_list(), ak.cast((bi + i_range), ak.uint64).to_list())
+        self.assertListEqual(ans.to_list(), ak.cast((i_range + bi), ak.uint64).to_list())
+        self.assertListEqual(ans.to_list(), ak.cast((u_range + bi), ak.uint64).to_list())
+        # TODO change to just be u+b once arkouda issue #1932 is worked adding uint binopvv bool
+        ans = u + ak.cast(b, ak.uint64)
+        self.assertListEqual(ans.to_list(), ak.cast((bi + b), ak.uint64).to_list())
+        self.assertListEqual(ans.to_list(), ak.cast((b + bi), ak.uint64).to_list())
+
+        ans = u - u_range
+        self.assertListEqual(ans.to_list(), ak.cast((bi - bi_range), ak.uint64).to_list())
+        self.assertListEqual(ans.to_list(), ak.cast((bi - u_range), ak.uint64).to_list())
+        self.assertListEqual(ans.to_list(), ak.cast((bi - i_range), ak.uint64).to_list())
+        # TODO change to just be u-b and b-u once arkouda issue #1932 is worked adding uint binopvv bool
+        self.assertListEqual((u - ak.cast(b, ak.uint64)).to_list(), ak.cast((bi - b), ak.uint64).to_list())
+        self.assertListEqual((ak.cast(b, ak.uint64) - u).to_list(), ak.cast((b - bi), ak.uint64).to_list())
+
+        ans = u * u_range
+        self.assertListEqual(ans.to_list(), ak.cast((bi * bi_range), ak.uint64).to_list())
+        self.assertListEqual(ans.to_list(), ak.cast((bi * u_range), ak.uint64).to_list())
+        self.assertListEqual(ans.to_list(), ak.cast((bi * i_range), ak.uint64).to_list())
+        ans = u * ak.cast(b, ak.uint64)
+        self.assertListEqual(ans.to_list(), ak.cast((bi * b), ak.uint64).to_list())
+        self.assertListEqual(ans.to_list(), ak.cast((b * bi), ak.uint64).to_list())
 
 
 if __name__ == "__main__":

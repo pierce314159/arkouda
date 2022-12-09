@@ -1118,6 +1118,7 @@ class pdarray:
         numpy.ndarray
         """
         from arkouda.client import maxTransferBytes
+        dt = dtype(self.dtype)
 
         # Total number of bytes in the array data
         arraybytes = self.size * self.dtype.itemsize
@@ -1138,7 +1139,6 @@ class pdarray:
             )
         # The server sends us native-endian data so we need to account for
         # that. If the view is readonly, copy so the np array is mutable
-        dt = np.dtype(self.dtype)
         if get_server_byteorder() == "big":
             dt = dt.newbyteorder(">")
         else:
