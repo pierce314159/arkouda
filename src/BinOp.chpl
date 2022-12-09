@@ -1068,7 +1068,13 @@ module BinOp
             tmp = la << ra;
           }
           when ">>" {
-            tmp = la >> ra;
+            // workaround for right shift until chapel issue #21206
+            // makes it into a release, eventually we can just do
+            // tmp = la >> ra;
+            var divideBy = makeDistArray(la.size, bigint);
+            divideBy = 1:bigint;
+            divideBy <<= ra;
+            tmp = la / divideBy;
           }
           // when "<<<" {
           //   tmp = rotl(l.a, r.a);

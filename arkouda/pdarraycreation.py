@@ -342,10 +342,11 @@ def zeros(size: Union[int_scalars, str], dtype: Union[np.dtype, type, str] = flo
     if not np.isscalar(size):
         raise TypeError(f"size must be a scalar, not {size.__class__.__name__}")
     dtype = akdtype(dtype)  # normalize dtype
+    dtype_name = cast(np.dtype, dtype).name if dtype != bigint else dtype
     # check dtype for error
-    if cast(np.dtype, dtype).name not in NumericDTypes:
+    if dtype_name not in NumericDTypes:
         raise TypeError(f"unsupported dtype {dtype}")
-    repMsg = generic_msg(cmd="create", args={"dtype": cast(np.dtype, dtype).name, "size": size})
+    repMsg = generic_msg(cmd="create", args={"dtype": dtype_name, "size": size})
 
     return create_pdarray(repMsg)
 
@@ -391,10 +392,11 @@ def ones(size: Union[int_scalars, str], dtype: Union[np.dtype, type, str] = floa
     if not np.isscalar(size):
         raise TypeError(f"size must be a scalar, not {size.__class__.__name__}")
     dtype = akdtype(dtype)  # normalize dtype
+    dtype_name = cast(np.dtype, dtype).name if dtype != bigint else dtype
     # check dtype for error
-    if cast(np.dtype, dtype).name not in NumericDTypes:
+    if dtype_name not in NumericDTypes:
         raise TypeError(f"unsupported dtype {dtype}")
-    repMsg = generic_msg(cmd="create", args={"dtype": cast(np.dtype, dtype).name, "size": size})
+    repMsg = generic_msg(cmd="create", args={"dtype": dtype_name, "size": size})
     a = create_pdarray(repMsg)
     a.fill(1)
     return a
@@ -446,9 +448,10 @@ def full(
         raise TypeError(f"size must be a scalar, not {size.__class__.__name__}")
     dtype = akdtype(dtype)  # normalize dtype
     # check dtype for error
-    if cast(np.dtype, dtype).name not in NumericDTypes:
+    dtype_name = cast(np.dtype, dtype).name if dtype != bigint else dtype
+    if dtype_name not in NumericDTypes:
         raise TypeError(f"unsupported dtype {dtype}")
-    repMsg = generic_msg(cmd="create", args={"dtype": cast(np.dtype, dtype).name, "size": size})
+    repMsg = generic_msg(cmd="create", args={"dtype": dtype_name, "size": size})
     a = create_pdarray(repMsg)
     a.fill(fill_value)
     return a
