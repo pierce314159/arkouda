@@ -32,13 +32,16 @@ module BigInt {
             bigIntArray += toSymEntry(getGenericTypedArrayEntry(name, st), uint).a;
             bigIntArray <<= 64;
         }
+        // it makes more sense to do bigIntArry >>= 64, so we dont have to declare blocksize
+        // but we have to do this until right shift bug in #21206 is resolved
         bigIntArray /= block_size;
         var retname = st.nextName();
 
         if max_bits != -1 {
+            // modBy should always be non-zero since we start at 1 and left shift
             var modBy = 1:bigint;
             modBy <<= max_bits;
-            bigIntArray %= modBy;
+            bigIntArray.mod(bigIntArray, modBy);
         }
 
         st.addEntry(retname, new shared SymEntry(bigIntArray, max_bits));

@@ -249,7 +249,13 @@ def array(
         # 2. too big to fit into other numpy types (dtype = object)
         try:
             try:
-                a = np.array(a)
+                tmp = np.array(a)
+                # numpy converts to float for large int (i.e. 2**64 - 1)
+                # avoid this so we don't lose precision
+                if tmp.dtype != np.float_:
+                    a = tmp
+                else:
+                    a = np.array(a, dtype=np.uint)
             except (RuntimeError, TypeError, ValueError):
                 raise TypeError("a must be a pdarray, np.ndarray, or convertible to a numpy array")
             # attempt to break bigint into multiple uint64 arrays

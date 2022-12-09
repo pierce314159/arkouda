@@ -1037,6 +1037,8 @@ module BinOp
     ref la = l.a;
     ref ra = r.a;
     var tmp = makeDistArray(la.size, bigint);
+    // i think tmp should be initialized to 0 but just to be sure
+    tmp = 0:bigint;
 
     // had to create bigint specific BinOp procs which return
     // the distributed array because we need it at SymEntry creation time
@@ -1089,7 +1091,9 @@ module BinOp
           [(ei,li,ri) in zip(tmp,la,ra)] ei = if ri != 0 then li/ri else 0:bigint;
         }
         when "%" { // modulo
-          [(ei,li,ri) in zip(tmp,la,ra)] ei = if ri != 0 then li%ri else 0:bigint;
+          // we only do in place mod when ri != 0, tmp will be 0 in other locations
+          // we can't use ei = li % ri because this can result in negatives
+          [(ei,li,ri) in zip(tmp,la,ra)] if ri != 0 then ei.mod(li, ri);
         }
         when "**" {
           if || reduce (ra<0) {
@@ -1123,7 +1127,8 @@ module BinOp
     //   throw new Error("Unsupported operation: " + op);
     // }
     if has_max_bits {
-      tmp %= modBy;
+      // modBy should always be non-zero since we start at 1 and left shift
+      tmp.mod(tmp, modBy);
     }
     return tmp;
   }
