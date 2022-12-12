@@ -39,6 +39,7 @@ __all__ = [
     "random_strings_uniform",
     "random_strings_lognormal",
     "from_series",
+    "bigint_from_uint_arrays",
 ]
 
 
@@ -198,6 +199,7 @@ def array(
 
     # If a is already a pdarray, do nothing
     if isinstance(a, pdarray):
+        # TODO update if max_bits is set
         return a if dtype is None else akcast(a, dtype)
     from arkouda.client import maxTransferBytes
 
@@ -252,7 +254,7 @@ def array(
 
     # If not strings, then check that dtype is supported in arkouda
     if dtype == bigint or a.dtype.name not in DTypes:
-        # 2 situations result in attempting to call `big_int_from_uint_arrays`
+        # 2 situations result in attempting to call `bigint_from_uint_arrays`
         # 1. user specified i.e. dtype=ak.bigint
         # 2. too big to fit into other numpy types (dtype = object)
         try:
@@ -261,7 +263,7 @@ def array(
             while any(a != 0):
                 low, a = a % 2**64, a // 2**64
                 uint_arrays.append(array(np.uint(low), dtype=akuint64))
-            return big_int_from_uint_arrays(uint_arrays[::-1], max_bits=max_bits)
+            return bigint_from_uint_arrays(uint_arrays[::-1], max_bits=max_bits)
         except TypeError:
             raise RuntimeError(f"Unhandled dtype {a.dtype}")
     else:
@@ -294,8 +296,11 @@ def _array_memview(a) -> memoryview:
         return memoryview(a)
 
 
-def big_int_from_uint_arrays(arrays, max_bits=-1):
-    # TODO do argument validation to ensure list of uints and same length
+def bigint_from_uint_arrays(arrays, max_bits=-1):
+    if not all(isinstance(a, pdarray) and a.dtype == akuint64 for a in arrays):
+        raise TypeError("Sequence must contain only uint pdarrays")
+    if len({a.size for a in arrays}) != 1:
+        raise TypeError("All pdarrays must be same size")
     a = create_pdarray(
         generic_msg(
             cmd="big_int_creation",
