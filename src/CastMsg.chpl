@@ -155,6 +155,9 @@ module CastMsg {
               when "bool" {
                   return new MsgTuple(castStringToSymEntry(strings, st, bool, errors), MsgType.NORMAL);
               }
+              when "bigint" {
+                  return new MsgTuple(castStringToBigInt(strings, st, errors), MsgType.NORMAL);
+              }
               otherwise {
                  var errorMsg = notImplementedError(pn,"str",":",targetDtype);
                  castLogger.error(getModuleName(),getRoutineName(),getLineNumber(),errorMsg);

@@ -654,6 +654,7 @@ class OperatorsTest(ArkoudaTest):
         bi_range = ak.arange(6, dtype=ak.bigint)
         u_range = ak.arange(6, dtype=ak.uint64)
         i_range = ak.arange(6, dtype=ak.int64)
+        neg_range = -i_range
         b = u_range % 2 == 0
 
         # TODO update once to_ndarray supports bigint to not cast into uint
@@ -669,9 +670,15 @@ class OperatorsTest(ArkoudaTest):
         self.assertListEqual(ans.to_list(), ak.cast((bi << u_range), ak.uint64).to_list())
         self.assertListEqual(ans.to_list(), ak.cast((bi << i_range), ak.uint64).to_list())
 
+        # print(u << neg_range)
+        # print(bi << neg_range)
+
         ans = u >> u_range
         self.assertListEqual(ans.to_list(), ak.cast((bi >> u_range), ak.uint64).to_list())
         self.assertListEqual(ans.to_list(), ak.cast((bi >> i_range), ak.uint64).to_list())
+
+        # print(u >> neg_range)
+        # print(bi >> neg_range)
 
         ans = u.rotl(u_range)
         self.assertListEqual(ans.to_list(), ak.cast((bi.rotl(u_range)), ak.uint64).to_list())
@@ -685,6 +692,9 @@ class OperatorsTest(ArkoudaTest):
         self.assertListEqual(ans.to_list(), ak.cast((bi // bi_range), ak.uint64).to_list())
         self.assertListEqual(ans.to_list(), ak.cast((bi // u_range), ak.uint64).to_list())
         self.assertListEqual(ans.to_list(), ak.cast((bi // i_range), ak.uint64).to_list())
+
+        # TODO should we guardrail int ops with bigint like we do with uint??
+        # print(bi // neg_range)
 
         ans = u % u_range
         self.assertListEqual(ans.to_list(), ak.cast((bi % bi_range), ak.uint64).to_list())

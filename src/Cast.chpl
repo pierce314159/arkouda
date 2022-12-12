@@ -169,4 +169,37 @@ module Cast {
       castLogger.debug(getModuleName(),getRoutineName(),getLineNumber(),returnMsg);
       return returnMsg;
   }
+
+    proc castStringToBigInt(s: SegString, st: borrowed SymTab, errors: ErrorMode): string throws {
+      use SegmentedComputation;
+      ref oa = s.offsets.a;
+      ref va = s.values.a;
+      var returnMsg = "";
+      const name = st.nextName();
+      // do something like segmented computation w/o the aggregation
+      select errors {
+        when ErrorMode.strict {
+          var entry = st.addEntry(name, new shared SymEntry(computeOnSegmentsWithoutAggregation(oa, va, SegFunction.StringToNumericStrict, bigint)));
+          returnMsg = "created " + st.attrib(name);
+        }
+        when ErrorMode.ignore {
+          var entry = st.addEntry(name, new shared SymEntry(computeOnSegmentsWithoutAggregation(oa, va, SegFunction.StringToNumericIgnore, bigint)));
+          returnMsg = "created " + st.attrib(name);
+        }
+        when ErrorMode.return_validity {
+          var valWithFlag = computeOnSegmentsWithoutAggregation(oa, va, SegFunction.StringToNumericReturnValidity, (bigint, bool));
+          const vname = st.nextName();
+          var valid = st.addEntry(vname, s.size, bool);
+          var tmp = makeDistArray(s.size, bigint);
+          forall (t, v, vf) in zip(tmp, valid.a, valWithFlag) {
+            (t, v) = vf;
+          }
+          var entry = st.addEntry(name, new shared SymEntry(tmp));
+          returnMsg = "created " + st.attrib(name);
+          returnMsg += "+created " + st.attrib(vname);
+        }
+      }
+      castLogger.debug(getModuleName(),getRoutineName(),getLineNumber(),returnMsg);
+      return returnMsg;
+  }
 }

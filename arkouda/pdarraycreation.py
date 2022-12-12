@@ -201,54 +201,10 @@ def array(
         return a if dtype is None else akcast(a, dtype)
     from arkouda.client import maxTransferBytes
 
-    if dtype != bigint:
-        # If a is not already a numpy.ndarray, convert it
-        if not isinstance(a, np.ndarray):
-            try:
-                a = np.array(a, dtype=dtype)
-            except (RuntimeError, TypeError, ValueError):
-                raise TypeError("a must be a pdarray, np.ndarray, or convertible to a numpy array")
-        # Return multi-dimensional arrayview
-        if a.ndim != 1:
-            # TODO add order
-            if a.dtype.name in NumericDTypes:
-                flat_a = array(a.flatten(), dtype=dtype)
-                if isinstance(flat_a, pdarray):
-                    # break into parts so mypy doesn't think we're calling reshape on a Strings
-                    return flat_a.reshape(a.shape)
-            else:
-                raise TypeError("Must be an iterable or have a numeric DType")
-        # Check if array of strings
-        if "U" in a.dtype.kind:
-            # encode each string and add a null byte terminator
-            encoded = [i for i in itertools.chain.from_iterable(map(lambda x: x.encode() + b"\x00", a))]
-            nbytes = len(encoded)
-            if nbytes > maxTransferBytes:
-                raise RuntimeError(
-                    f"Creating pdarray would require transferring {nbytes} bytes, which exceeds "
-                    f"allowed transfer size. Increase ak.maxTransferBytes to force."
-                )
-            encoded_np = np.array(encoded, dtype=np.uint8)
-            rep_msg = generic_msg(
-                cmd="array",
-                args={"dtype": encoded_np.dtype.name, "size": encoded_np.size, "seg_string": True},
-                payload=_array_memview(encoded_np),
-                send_binary=True,
-            )
-            parts = cast(str, rep_msg).split("+", maxsplit=3)
-            return (
-                Strings.from_parts(parts[0], parts[1])
-                if dtype is None
-                else akcast(Strings.from_parts(parts[0], parts[1]), dtype)
-            )
-
-    # If not strings, then check that dtype is supported in arkouda
-    if dtype == bigint or a.dtype.name not in DTypes:
-        # 2 situations result in attempting to call `big_int_from_uint_arrays`
-        # 1. user specified i.e. dtype=ak.bigint
-        # 2. too big to fit into other numpy types (dtype = object)
+    # If a is not already a numpy.ndarray, convert it
+    if not isinstance(a, np.ndarray):
         try:
-            try:
+            if dtype == bigint:
                 tmp = np.array(a)
                 # numpy converts to float for large int (i.e. 2**64 - 1)
                 # avoid this so we don't lose precision
@@ -256,8 +212,50 @@ def array(
                     a = tmp
                 else:
                     a = np.array(a, dtype=np.uint)
-            except (RuntimeError, TypeError, ValueError):
-                raise TypeError("a must be a pdarray, np.ndarray, or convertible to a numpy array")
+            else:
+                a = np.array(a, dtype=dtype)
+        except (RuntimeError, TypeError, ValueError):
+            raise TypeError("a must be a pdarray, np.ndarray, or convertible to a numpy array")
+    # Return multi-dimensional arrayview
+    if a.ndim != 1:
+        # TODO add order
+        if a.dtype.name in NumericDTypes:
+            flat_a = array(a.flatten(), dtype=dtype)
+            if isinstance(flat_a, pdarray):
+                # break into parts so mypy doesn't think we're calling reshape on a Strings
+                return flat_a.reshape(a.shape)
+        else:
+            raise TypeError("Must be an iterable or have a numeric DType")
+    # Check if array of strings
+    if "U" in a.dtype.kind:
+        # encode each string and add a null byte terminator
+        encoded = [i for i in itertools.chain.from_iterable(map(lambda x: x.encode() + b"\x00", a))]
+        nbytes = len(encoded)
+        if nbytes > maxTransferBytes:
+            raise RuntimeError(
+                f"Creating pdarray would require transferring {nbytes} bytes, which exceeds "
+                f"allowed transfer size. Increase ak.maxTransferBytes to force."
+            )
+        encoded_np = np.array(encoded, dtype=np.uint8)
+        rep_msg = generic_msg(
+            cmd="array",
+            args={"dtype": encoded_np.dtype.name, "size": encoded_np.size, "seg_string": True},
+            payload=_array_memview(encoded_np),
+            send_binary=True,
+        )
+        parts = cast(str, rep_msg).split("+", maxsplit=3)
+        return (
+            Strings.from_parts(parts[0], parts[1])
+            if dtype is None
+            else akcast(Strings.from_parts(parts[0], parts[1]), dtype)
+        )
+
+    # If not strings, then check that dtype is supported in arkouda
+    if dtype == bigint or a.dtype.name not in DTypes:
+        # 2 situations result in attempting to call `big_int_from_uint_arrays`
+        # 1. user specified i.e. dtype=ak.bigint
+        # 2. too big to fit into other numpy types (dtype = object)
+        try:
             # attempt to break bigint into multiple uint64 arrays
             uint_arrays = []
             while any(a != 0):

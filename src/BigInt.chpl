@@ -27,14 +27,11 @@ module BigInt {
         // block size is 2**64
         var block_size = 1:bigint;
         block_size <<= 64;
-        // for (name, i) in zip(arrayNames, 0..<size by -1) with (+ reduce bigIntArray) {
-        for name in arrayNames {
-            bigIntArray += toSymEntry(getGenericTypedArrayEntry(name, st), uint).a;
-            bigIntArray <<= 64;
+        forall (name, i) in zip(arrayNames, 0..<size by -1) with (+ reduce bigIntArray) {
+            var tmp = toSymEntry(getGenericTypedArrayEntry(name, st), uint).a:bigint;
+            tmp <<= (64*i);
+            bigIntArray += tmp;
         }
-        // it makes more sense to do bigIntArry >>= 64, so we dont have to declare blocksize
-        // but we have to do this until right shift bug in #21206 is resolved
-        bigIntArray /= block_size;
         var retname = st.nextName();
 
         if max_bits != -1 {
