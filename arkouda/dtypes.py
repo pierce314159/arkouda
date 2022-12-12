@@ -41,10 +41,29 @@ NUMBER_FORMAT_STRINGS = {
     "uint8": "{:n}",
     "np.float64": "f",
     "uint64": "{:n}",
+    "bigint": "{:n}",
 }
 
 
-def dtype(x): return bigint if x == 'bigint' else np.dtype(x)
+def dtype(x):
+    if x == 'bigint' or isinstance(x, BigInt):
+        return bigint
+    else:
+        return np.dtype(x)
+
+
+class BigInt:
+    def __init__(self):
+        self.name = "bigint"
+
+    def __str__(self):
+        return self.name
+
+    def __repr__(self):
+        return f"dtype({self.name})"
+
+    def type(self, x):
+        return int(x)
 
 
 bool = np.dtype(bool)
@@ -53,7 +72,7 @@ float64 = np.dtype(np.float64)
 uint8 = np.dtype(np.uint8)
 uint64 = np.dtype(np.uint64)
 str_ = np.dtype(np.str_)
-bigint = "bigint"
+bigint = BigInt()
 npstr = np.dtype(str)
 intTypes = frozenset((int64, uint64, uint8))
 bitType = uint64
@@ -71,7 +90,7 @@ int_scalars = Union[
     np.uint16,
     np.uint32,
     np.uint64,
-    bigint,
+    BigInt,
 ]
 numeric_scalars = Union[float_scalars, int_scalars]
 numeric_and_bool_scalars = Union[bool_scalars, numeric_scalars]
@@ -87,7 +106,7 @@ numpy_scalars = Union[
     np.uint16,
     np.uint32,
     np.uint64,
-    bigint,
+    BigInt,
 ]
 str_scalars = Union[str, np.str_]
 all_scalars = Union[bool_scalars, numeric_scalars, numpy_scalars, str_scalars]
@@ -134,7 +153,7 @@ ARKOUDA_SUPPORTED_INTS = (
     np.uint16,
     np.uint32,
     np.uint64,
-    bigint,
+    BigInt,
 )
 ARKOUDA_SUPPORTED_FLOATS = (float, np.float64)
 ARKOUDA_SUPPORTED_NUMBERS = (
@@ -149,7 +168,7 @@ ARKOUDA_SUPPORTED_NUMBERS = (
     np.uint16,
     np.uint32,
     np.uint64,
-    bigint,
+    BigInt,
 )
 ARKOUDA_SUPPORTED_DTYPES = frozenset(
     [member.value for _, member in DType.__members__.items()]

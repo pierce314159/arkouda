@@ -13,6 +13,7 @@ from arkouda.dtypes import (
     isSupportedNumber,
     numeric_scalars,
     resolve_scalar_dtype,
+    BigInt,
 )
 from arkouda.groupbyclass import GroupBy
 from arkouda.pdarrayclass import create_pdarray, pdarray
@@ -46,7 +47,9 @@ class ErrorMode(Enum):
 
 @typechecked
 def cast(
-    pda: Union[pdarray, Strings], dt: Union[np.dtype, type, str], errors: ErrorMode = ErrorMode.strict
+    pda: Union[pdarray, Strings],
+    dt: Union[np.dtype, type, str, BigInt],
+    errors: ErrorMode = ErrorMode.strict,
 ) -> Union[Union[pdarray, Strings], Tuple[pdarray, pdarray]]:
     """
     Cast an array to another dtype.
@@ -106,18 +109,17 @@ def cast(
     # typechecked decorator guarantees no other case
 
     dt = _as_dtype(dt)
-    dt_name = dt.name if dt != 'bigint' else dt
     cmd = "cast"
     repMsg = generic_msg(
         cmd=cmd,
         args={
             "name": name,
             "objType": objtype,
-            "targetDtype": dt_name,
+            "targetDtype": dt.name,
             "opt": errors.name,
         },
     )
-    if dt_name.startswith("str"):
+    if dt.name.startswith("str"):
         return Strings.from_parts(*(type_cast(str, repMsg).split("+")))
     else:
         if errors == ErrorMode.return_validity:
@@ -661,10 +663,7 @@ def histogram(pda: pdarray, bins: int_scalars = 10) -> Tuple[np.ndarray, pdarray
     if bins < 1:
         raise ValueError("bins must be 1 or greater")
     b = np.linspace(pda.min(), pda.max(), bins + 1)[:-1]  # type: ignore
-    repMsg = generic_msg(cmd="histogram", args={
-        "array": pda,
-        "bins": bins
-    })
+    repMsg = generic_msg(cmd="histogram", args={"array": pda, "bins": bins})
     return b, create_pdarray(type_cast(str, repMsg))
 
 

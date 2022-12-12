@@ -9,7 +9,7 @@ from arkouda.client import generic_msg
 from arkouda.dtypes import NUMBER_FORMAT_STRINGS, DTypes, NumericDTypes, SeriesDTypes
 from arkouda.dtypes import dtype as akdtype
 from arkouda.dtypes import uint64 as akuint64
-from arkouda.dtypes import bigint
+from arkouda.dtypes import bigint, BigInt
 from arkouda.dtypes import (
     float64,
     get_byteorder,
@@ -306,7 +306,7 @@ def big_int_from_uint_arrays(arrays, max_bits=-1):
 
 
 @typechecked
-def zeros(size: Union[int_scalars, str], dtype: Union[np.dtype, type, str] = float64) -> pdarray:
+def zeros(size: Union[int_scalars, str], dtype: Union[np.dtype, type, str, BigInt] = float64) -> pdarray:
     """
     Create a pdarray filled with zeros.
 
@@ -346,17 +346,16 @@ def zeros(size: Union[int_scalars, str], dtype: Union[np.dtype, type, str] = flo
     if not np.isscalar(size):
         raise TypeError(f"size must be a scalar, not {size.__class__.__name__}")
     dtype = akdtype(dtype)  # normalize dtype
-    dtype_name = cast(np.dtype, dtype).name if dtype != bigint else dtype
     # check dtype for error
-    if dtype_name not in NumericDTypes:
+    if dtype.name not in NumericDTypes:
         raise TypeError(f"unsupported dtype {dtype}")
-    repMsg = generic_msg(cmd="create", args={"dtype": dtype_name, "size": size})
+    repMsg = generic_msg(cmd="create", args={"dtype": dtype.name, "size": size})
 
     return create_pdarray(repMsg)
 
 
 @typechecked
-def ones(size: Union[int_scalars, str], dtype: Union[np.dtype, type, str] = float64) -> pdarray:
+def ones(size: Union[int_scalars, str], dtype: Union[np.dtype, type, str, BigInt] = float64) -> pdarray:
     """
     Create a pdarray filled with ones.
 
@@ -396,11 +395,10 @@ def ones(size: Union[int_scalars, str], dtype: Union[np.dtype, type, str] = floa
     if not np.isscalar(size):
         raise TypeError(f"size must be a scalar, not {size.__class__.__name__}")
     dtype = akdtype(dtype)  # normalize dtype
-    dtype_name = cast(np.dtype, dtype).name if dtype != bigint else dtype
     # check dtype for error
-    if dtype_name not in NumericDTypes:
+    if dtype.name not in NumericDTypes:
         raise TypeError(f"unsupported dtype {dtype}")
-    repMsg = generic_msg(cmd="create", args={"dtype": dtype_name, "size": size})
+    repMsg = generic_msg(cmd="create", args={"dtype": dtype.name, "size": size})
     a = create_pdarray(repMsg)
     a.fill(1)
     return a
@@ -408,7 +406,7 @@ def ones(size: Union[int_scalars, str], dtype: Union[np.dtype, type, str] = floa
 
 @typechecked
 def full(
-    size: Union[int_scalars, str], fill_value: int_scalars, dtype: Union[np.dtype, type, str] = float64
+    size: Union[int_scalars, str], fill_value: int_scalars, dtype: Union[np.dtype, type, str, BigInt] = float64
 ) -> pdarray:
     """
     Create a pdarray filled with fill_value.
@@ -452,10 +450,9 @@ def full(
         raise TypeError(f"size must be a scalar, not {size.__class__.__name__}")
     dtype = akdtype(dtype)  # normalize dtype
     # check dtype for error
-    dtype_name = cast(np.dtype, dtype).name if dtype != bigint else dtype
-    if dtype_name not in NumericDTypes:
+    if dtype.name not in NumericDTypes:
         raise TypeError(f"unsupported dtype {dtype}")
-    repMsg = generic_msg(cmd="create", args={"dtype": dtype_name, "size": size})
+    repMsg = generic_msg(cmd="create", args={"dtype": dtype.name, "size": size})
     a = create_pdarray(repMsg)
     a.fill(fill_value)
     return a
