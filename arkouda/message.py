@@ -4,9 +4,10 @@ import json
 from dataclasses import dataclass
 from enum import Enum
 from typing import Dict
-from arkouda.dtypes import bigint
 
 from typeguard import typechecked
+
+from arkouda.dtypes import bigint
 
 
 class ObjectType(Enum):

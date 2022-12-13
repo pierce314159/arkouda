@@ -46,7 +46,7 @@ NUMBER_FORMAT_STRINGS = {
 
 
 def dtype(x):
-    if (isinstance(x, str) and x == 'bigint') or isinstance(x, BigInt):
+    if (isinstance(x, str) and x == "bigint") or isinstance(x, BigInt):
         return bigint
     else:
         return np.dtype(x)
@@ -90,7 +90,6 @@ int_scalars = Union[
     np.uint16,
     np.uint32,
     np.uint64,
-    BigInt,
 ]
 numeric_scalars = Union[float_scalars, int_scalars]
 numeric_and_bool_scalars = Union[bool_scalars, numeric_scalars]
@@ -106,7 +105,6 @@ numpy_scalars = Union[
     np.uint16,
     np.uint32,
     np.uint64,
-    BigInt,
 ]
 str_scalars = Union[str, np.str_]
 all_scalars = Union[bool_scalars, numeric_scalars, numpy_scalars, str_scalars]
@@ -170,9 +168,7 @@ ARKOUDA_SUPPORTED_NUMBERS = (
     np.uint64,
     BigInt,
 )
-ARKOUDA_SUPPORTED_DTYPES = frozenset(
-    [member.value for _, member in DType.__members__.items()]
-)
+ARKOUDA_SUPPORTED_DTYPES = frozenset([member.value for _, member in DType.__members__.items()])
 
 DTypes = frozenset([member.value for _, member in DType.__members__.items()])
 DTypeObjects = frozenset([bool, float, float64, int, int64, str, str_, uint8, uint64])
@@ -257,17 +253,13 @@ def resolve_scalar_dtype(val: object) -> str:  # type: ignore
     ):
         return "bool"
     # Python int or np.int* or np.uint*
-    elif isinstance(val, int) or (
-        hasattr(val, "dtype") and cast(np.uint, val).dtype.kind in "ui"
-    ):
+    elif isinstance(val, int) or (hasattr(val, "dtype") and cast(np.uint, val).dtype.kind in "ui"):
         if isinstance(val, np.uint64):
             return "uint64"
         else:
             return "int64"
     # Python float or np.float*
-    elif isinstance(val, float) or (
-        hasattr(val, "dtype") and cast(np.float_, val).dtype.kind == "f"
-    ):
+    elif isinstance(val, float) or (hasattr(val, "dtype") and cast(np.float_, val).dtype.kind == "f"):
         return "float64"
     elif isinstance(val, builtins.str) or isinstance(val, np.str_):
         return "str"

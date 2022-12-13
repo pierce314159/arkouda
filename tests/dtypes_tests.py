@@ -155,14 +155,14 @@ class DtypesTest(ArkoudaTest):
         self.assertEqual(
             (
                 "typing.Union[int, numpy.int8, numpy.int16, numpy.int32, numpy.int64, "
-                + "numpy.uint8, numpy.uint16, numpy.uint32, numpy.uint64, arkouda.dtypes.BigInt]"
+                + "numpy.uint8, numpy.uint16, numpy.uint32, numpy.uint64]"
             ),
             str(ak.int_scalars),
         )
         self.assertEqual(
             (
                 "typing.Union[float, numpy.float64, int, numpy.int8, numpy.int16, numpy.int32, "
-                + "numpy.int64, numpy.uint8, numpy.uint16, numpy.uint32, numpy.uint64, arkouda.dtypes.BigInt]"
+                + "numpy.int64, numpy.uint8, numpy.uint16, numpy.uint32, numpy.uint64]"
             ),
             str(ak.numeric_scalars),
         )
@@ -171,7 +171,7 @@ class DtypesTest(ArkoudaTest):
             (
                 "typing.Union[numpy.float64, numpy.int8, numpy.int16, numpy.int32, "
                 + "numpy.int64, numpy.bool_, numpy.str_, numpy.uint8, numpy.uint16, numpy.uint32, "
-                + "numpy.uint64, arkouda.dtypes.BigInt]"
+                + "numpy.uint64]"
             ),
             str(ak.numpy_scalars),
         )
@@ -179,7 +179,7 @@ class DtypesTest(ArkoudaTest):
             (
                 "typing.Union[bool, numpy.bool_, float, numpy.float64, int, numpy.int8, "
                 + "numpy.int16, numpy.int32, numpy.int64, numpy.uint8, numpy.uint16, numpy.uint32,"
-                + " numpy.uint64, arkouda.dtypes.BigInt, numpy.str_, str]"
+                + " numpy.uint64, numpy.str_, str]"
             ),
             str(ak.all_scalars),
         )

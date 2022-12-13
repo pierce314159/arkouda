@@ -6,10 +6,15 @@ import pandas as pd  # type: ignore
 from typeguard import typechecked
 
 from arkouda.client import generic_msg
-from arkouda.dtypes import NUMBER_FORMAT_STRINGS, DTypes, NumericDTypes, SeriesDTypes
+from arkouda.dtypes import (
+    NUMBER_FORMAT_STRINGS,
+    BigInt,
+    DTypes,
+    NumericDTypes,
+    SeriesDTypes,
+    bigint,
+)
 from arkouda.dtypes import dtype as akdtype
-from arkouda.dtypes import uint64 as akuint64
-from arkouda.dtypes import bigint, BigInt
 from arkouda.dtypes import (
     float64,
     get_byteorder,
@@ -20,6 +25,7 @@ from arkouda.dtypes import (
     isSupportedNumber,
     numeric_scalars,
 )
+from arkouda.dtypes import uint64 as akuint64
 from arkouda.pdarrayclass import create_pdarray, pdarray
 from arkouda.strings import Strings
 
@@ -133,7 +139,7 @@ def from_series(series: pd.Series, dtype: Optional[Union[type, str]] = None) -> 
 
 
 def array(
-    a: Union[pdarray, np.ndarray, Iterable], dtype: Union[np.dtype, type, str] = None, max_bits = -1
+    a: Union[pdarray, np.ndarray, Iterable], dtype: Union[np.dtype, type, str] = None, max_bits=-1
 ) -> Union[pdarray, Strings]:
     """
     Convert a Python or Numpy Iterable to a pdarray or Strings object, sending
@@ -262,7 +268,7 @@ def array(
             uint_arrays = []
             while any(a != 0):
                 low, a = a % 2**64, a // 2**64
-                uint_arrays.append(array(np.uint(low), dtype=akuint64))
+                uint_arrays.append(array(np.array(low, dtype=np.uint), dtype=akuint64))
             return bigint_from_uint_arrays(uint_arrays[::-1], max_bits=max_bits)
         except TypeError:
             raise RuntimeError(f"Unhandled dtype {a.dtype}")
@@ -351,10 +357,11 @@ def zeros(size: Union[int_scalars, str], dtype: Union[np.dtype, type, str, BigIn
     if not np.isscalar(size):
         raise TypeError(f"size must be a scalar, not {size.__class__.__name__}")
     dtype = akdtype(dtype)  # normalize dtype
+    dtype_name = dtype.name if isinstance(dtype, BigInt) else cast(np.dtype, dtype).name
     # check dtype for error
-    if dtype.name not in NumericDTypes:
+    if dtype_name not in NumericDTypes:
         raise TypeError(f"unsupported dtype {dtype}")
-    repMsg = generic_msg(cmd="create", args={"dtype": dtype.name, "size": size})
+    repMsg = generic_msg(cmd="create", args={"dtype": dtype_name, "size": size})
 
     return create_pdarray(repMsg)
 
@@ -400,10 +407,11 @@ def ones(size: Union[int_scalars, str], dtype: Union[np.dtype, type, str, BigInt
     if not np.isscalar(size):
         raise TypeError(f"size must be a scalar, not {size.__class__.__name__}")
     dtype = akdtype(dtype)  # normalize dtype
+    dtype_name = dtype.name if isinstance(dtype, BigInt) else cast(np.dtype, dtype).name
     # check dtype for error
-    if dtype.name not in NumericDTypes:
+    if dtype_name not in NumericDTypes:
         raise TypeError(f"unsupported dtype {dtype}")
-    repMsg = generic_msg(cmd="create", args={"dtype": dtype.name, "size": size})
+    repMsg = generic_msg(cmd="create", args={"dtype": dtype_name, "size": size})
     a = create_pdarray(repMsg)
     a.fill(1)
     return a
@@ -411,7 +419,9 @@ def ones(size: Union[int_scalars, str], dtype: Union[np.dtype, type, str, BigInt
 
 @typechecked
 def full(
-    size: Union[int_scalars, str], fill_value: int_scalars, dtype: Union[np.dtype, type, str, BigInt] = float64
+    size: Union[int_scalars, str],
+    fill_value: int_scalars,
+    dtype: Union[np.dtype, type, str, BigInt] = float64,
 ) -> pdarray:
     """
     Create a pdarray filled with fill_value.
@@ -454,10 +464,11 @@ def full(
     if not np.isscalar(size):
         raise TypeError(f"size must be a scalar, not {size.__class__.__name__}")
     dtype = akdtype(dtype)  # normalize dtype
+    dtype_name = dtype.name if isinstance(dtype, BigInt) else cast(np.dtype, dtype).name
     # check dtype for error
-    if dtype.name not in NumericDTypes:
+    if dtype_name not in NumericDTypes:
         raise TypeError(f"unsupported dtype {dtype}")
-    repMsg = generic_msg(cmd="create", args={"dtype": dtype.name, "size": size})
+    repMsg = generic_msg(cmd="create", args={"dtype": dtype_name, "size": size})
     a = create_pdarray(repMsg)
     a.fill(fill_value)
     return a
@@ -686,7 +697,7 @@ def arange(*args, **kwargs) -> pdarray:
 
     dtype = int64 if "dtype" not in kwargs.keys() else kwargs["dtype"]
 
-    if dtype in ['bigint', bigint] or any([start > 2**64, stop > 2**64]):
+    if dtype in ["bigint", bigint] or any([start > 2**64, stop > 2**64]):
         # we only return dtype bigint here
         repMsg = generic_msg(cmd="bigintArange", args={"start": start, "stop": stop, "stride": stride})
         return create_pdarray(repMsg)

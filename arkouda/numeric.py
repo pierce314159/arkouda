@@ -7,13 +7,13 @@ from typeguard import typechecked
 
 from arkouda.client import generic_msg
 from arkouda.dtypes import (
+    BigInt,
     DTypes,
     _as_dtype,
     int_scalars,
     isSupportedNumber,
     numeric_scalars,
     resolve_scalar_dtype,
-    BigInt,
 )
 from arkouda.groupbyclass import GroupBy
 from arkouda.pdarrayclass import create_pdarray, pdarray

@@ -8,7 +8,7 @@ import numpy as np  # type: ignore
 from typeguard import typechecked
 
 from arkouda.client import generic_msg
-from arkouda.dtypes import NUMBER_FORMAT_STRINGS, DTypes
+from arkouda.dtypes import NUMBER_FORMAT_STRINGS, DTypes, bigint
 from arkouda.dtypes import bool as akbool
 from arkouda.dtypes import bool as npbool
 from arkouda.dtypes import dtype, get_server_byteorder
@@ -24,7 +24,6 @@ from arkouda.dtypes import (
 from arkouda.dtypes import str_ as akstr_
 from arkouda.dtypes import translate_np_dtype
 from arkouda.dtypes import uint64 as akuint64
-from arkouda.dtypes import bigint
 from arkouda.infoclass import information, list_registry, pretty_print_information
 from arkouda.logger import getArkoudaLogger
 
@@ -1118,6 +1117,7 @@ class pdarray:
         numpy.ndarray
         """
         from arkouda.client import maxTransferBytes
+
         dt = dtype(self.dtype)
 
         # Total number of bytes in the array data
