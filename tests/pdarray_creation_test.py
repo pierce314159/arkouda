@@ -60,14 +60,13 @@ class PdarrayCreationTest(ArkoudaTest):
         self.assertEqual(ak.bigint, pda.dtype)
         self.assertEqual(pda[-1], bi + 9)
 
-        # compare array infer dtype to arange with explict dtype
+        # test array and arange infer dtype
         arr = ak.array([bi, bi+1, bi+2, bi+3, bi+4])
-        # TODO add .getBigIntValue() for scalars
-        # ara = ak.arange(bi, bi+5, dtype=ak.bigint)
+        ara = ak.arange(bi, bi+5)
         # TODO add .to_list and .to_ndarray functionality
         for i in range(5):
             self.assertEqual(arr[i], bi+i)
-            # self.assertEqual(ara[i], bi+i)
+            self.assertEqual(ara[i], bi+i)
 
         # test that max_bits being set results in a mod
         pda = ak.array([bi, bi+1, bi+2, bi+3, bi+4], max_bits=200)

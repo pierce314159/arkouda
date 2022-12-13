@@ -2756,7 +2756,7 @@ def power(pda: pdarray, pwr: Union[int, float, pdarray], where: Union[bool, pdar
         return pda
     else:
         exp = pda**pwr
-        return akwhere(where, exp, akcast(pda, dtype(exp)))
+        return akwhere(where, exp, akcast(pda, exp.dtype))
 
 
 @typechecked

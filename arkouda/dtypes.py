@@ -46,7 +46,7 @@ NUMBER_FORMAT_STRINGS = {
 
 
 def dtype(x):
-    if x == 'bigint' or isinstance(x, BigInt):
+    if (isinstance(x, str) and x == 'bigint') or isinstance(x, BigInt):
         return bigint
     else:
         return np.dtype(x)

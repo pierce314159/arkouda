@@ -116,13 +116,20 @@ module CastMsg {
             }
             when (DType.Bool, "float64") {
                 return new MsgTuple(castGenSymEntry(gse, st, bool, real), MsgType.NORMAL);
-            } 
+            }
             when (DType.Bool, "bool") {
                 return new MsgTuple(castGenSymEntry(gse, st, bool, bool), MsgType.NORMAL);
             }
             when (DType.Bool, "str") {
                 return new MsgTuple(castGenSymEntryToString(gse, st, bool), MsgType.NORMAL);
             }
+            when (DType.Bool, "bigint") {
+                return new MsgTuple(castGenSymEntryToBigInt(gse, st, bool), MsgType.NORMAL);
+            }
+            // TODO add bigint to "str"
+            // when (DType.BigInt, "bigint") {
+            //     return new MsgTuple(castGenSymEntry(gse, st, bigint, bigint), MsgType.NORMAL);
+            // }
             when (DType.BigInt, "uint64") {
                 return new MsgTuple(castGenSymEntry(gse, st, bigint, uint), MsgType.NORMAL);
             }

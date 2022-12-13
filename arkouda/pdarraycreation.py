@@ -686,6 +686,11 @@ def arange(*args, **kwargs) -> pdarray:
 
     dtype = int64 if "dtype" not in kwargs.keys() else kwargs["dtype"]
 
+    if dtype in ['bigint', bigint] or any([start > 2**64, stop > 2**64]):
+        # we only return dtype bigint here
+        repMsg = generic_msg(cmd="bigintArange", args={"start": start, "stop": stop, "stride": stride})
+        return create_pdarray(repMsg)
+
     if isSupportedInt(start) and isSupportedInt(stop) and isSupportedInt(stride):
         if stride < 0:
             stop = stop + 2

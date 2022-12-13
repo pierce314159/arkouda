@@ -36,7 +36,8 @@ module Cast {
     const name = st.nextName();
     var tmp = makeDistArray(before.size, bigint);
     try {
-      tmp = before.a: bigint;
+      // TODO change once we can cast directly from bool to bigint
+      tmp = if fromType != bool then before.a: bigint else before.a:int:bigint;
     } catch e: IllegalArgumentError {
       var errorMsg = "bad value in cast from %s to bigint".format(fromType:string);
       castLogger.error(getModuleName(),getRoutineName(),getLineNumber(),errorMsg);

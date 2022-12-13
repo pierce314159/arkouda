@@ -4,6 +4,7 @@ import json
 from dataclasses import dataclass
 from enum import Enum
 from typing import Dict
+from arkouda.dtypes import bigint
 
 from typeguard import typechecked
 
@@ -163,6 +164,11 @@ class ParameterObject:
         ParameterObject
         """
         v = val if isinstance(val, str) else str(val)
+        try:
+            if val >= 2**64:
+                return ParameterObject(key, ObjectType.VALUE, bigint.name, v)
+        except TypeError:
+            pass
         return ParameterObject(key, ObjectType.VALUE, type(val).__name__, v)
 
     @staticmethod
