@@ -49,6 +49,7 @@ BENCHMARKS = [
     "dataframe",
     "encode",
     "bigint_conversion",
+    "bigint_stream",
 ]
 
 if os.getenv("ARKOUDA_SERVER_PARQUET_SUPPORT"):

@@ -1237,11 +1237,11 @@ module BinOp
           visted = true;
         }
         when "-" {
-          tmp = l.a - r.a;
+          tmp = la - ra;
           visted = true;
         }
         when "*" {
-          tmp = l.a * r.a;
+          tmp = la * ra;
           visted = true;
         }
       }
@@ -1252,7 +1252,9 @@ module BinOp
     else {
       if has_max_bits {
         // max_size should always be non-zero since we start at 1 and left shift
-        tmp.mod(tmp, max_size);
+        forall t in tmp with (var local_max_size = max_size) {
+          t.mod(t, local_max_size);
+        }
       }
       return (tmp, max_bits);
     }
@@ -1425,15 +1427,21 @@ module BinOp
        (val.type == bigint && (l.etype == int || l.etype == uint || l.etype == bool)) {
       select op {
         when "+" {
-          tmp = la + val;
+          forall (t, li) in zip(tmp, la) with (var local_val = val) {
+            t = li + local_val;
+          }
           visted = true;
         }
         when "-" {
-          tmp = l.a - val;
+          forall (t, li) in zip(tmp, la) with (var local_val = val) {
+            t = li - local_val;
+          }
           visted = true;
         }
         when "*" {
-          tmp = l.a * val;
+          forall (t, li) in zip(tmp, la) with (var local_val = val) {
+            t = li * local_val;
+          }
           visted = true;
         }
       }
@@ -1444,7 +1452,9 @@ module BinOp
     else {
       if has_max_bits {
         // max_size should always be non-zero since we start at 1 and left shift
-        tmp.mod(tmp, max_size);
+        forall t in tmp with (var local_max_size = max_size) {
+          t.mod(t, local_max_size);
+        }
       }
       return (tmp, max_bits);
     }
@@ -1640,7 +1650,9 @@ module BinOp
     else {
       if has_max_bits {
         // max_size should always be non-zero since we start at 1 and left shift
-        tmp.mod(tmp, max_size);
+        forall t in tmp with (var local_max_size = max_size) {
+          t.mod(t, local_max_size);
+        }
       }
       return (tmp, max_bits);
     }
