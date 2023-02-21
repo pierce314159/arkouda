@@ -18,7 +18,7 @@ def time_ak_stream(N_per_locale, trials, alpha, max_bits, random, seed):
     if random or seed is not None:
         a1 = ak.randint(0, 2**32, N, dtype=ak.uint64, seed=seed)
         a2 = ak.randint(0, 2**32, N, dtype=ak.uint64, seed=seed)
-        a = ak.bigint_from_uint_arrays([a1, a2])
+        a = ak.bigint_from_uint_arrays([a1, a2], max_bits=max_bits)
         b1 = ak.randint(0, 2**32, N, dtype=ak.uint64, seed=seed)
         b2 = ak.randint(0, 2**32, N, dtype=ak.uint64, seed=seed)
         b = ak.bigint_from_uint_arrays([b1, b2], max_bits=max_bits)
