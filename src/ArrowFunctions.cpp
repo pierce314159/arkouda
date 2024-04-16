@@ -703,63 +703,41 @@ int cpp_readColumnByName(const char* filename, void* chpl_arr, const char* colna
           i++; // skip one space so the strings are null terminated with a 0
         }
       } else if(ty == ARROWFLOAT) {
+        int16_t definition_level; // nullable type and only reading single records in batch
         auto chpl_ptr = (double*)chpl_arr;
         parquet::FloatReader* reader =
           static_cast<parquet::FloatReader*>(column_reader.get());
         startIdx -= reader->Skip(startIdx);
         
         while (reader->HasNext() && i < numElems) {
-          if((numElems - i) < batchSize) // adjust batchSize if needed
-            batchSize = numElems - i;
-
-          // define def and rep level tracking to the batch size. This is required to detect NaN
-          int16_t* def_lvl = new int16_t[batchSize] { 0 };
-          int16_t* rep_lvl = new int16_t[batchSize] { 0 };
-          
-          float* tmpArr = new float[batchSize] { 0 }; // this will not include NaN values
-          
-          int64_t idx_adjust = 0; // adjustment for NaNs encountered so index into tmpArr is correct
-          (void)reader->ReadBatch(batchSize, def_lvl, rep_lvl, tmpArr, &values_read);
-          // copy values to Chapel array. Convert to double if not NaN
-          for (int64_t j = 0; j < batchSize; j++){
-            // when definition level is 0, mean Null which equated to NaN here unless 0 is the max meaning no null/nan values
-            if (max_def != 0 && def_lvl[j] == 0) {
-              chpl_ptr[i] = NAN;
-              idx_adjust++; // account for the NaN at the indexes after because tmpArr only stores values
-            } else {
-              chpl_ptr[i] = (double)tmpArr[j-idx_adjust]; // cast to double for Chapel
-            }
-            i++;
+          float value;
+          (void)reader->ReadBatch(1, &definition_level, nullptr, &value, &values_read);
+          // if values_read is 0, that means that it was a null value
+          if(values_read > 0) {
+            // this means it wasn't null
+            chpl_ptr[i] = (double) value;
+          } else {
+            chpl_ptr[i] = NAN;
           }
+          i++;
         }
       } else if(ty == ARROWDOUBLE) {
+        int16_t definition_level; // nullable type and only reading single records in batch
         auto chpl_ptr = (double*)chpl_arr;
         parquet::DoubleReader* reader =
           static_cast<parquet::DoubleReader*>(column_reader.get());
         startIdx -= reader->Skip(startIdx);
-
         while (reader->HasNext() && i < numElems) {
-          if((numElems - i) < batchSize) // adjust batchSize if needed
-            batchSize = numElems - i;
-
-          // define def and rep level tracking to the batch size. This is required to detect NaN
-          int16_t* def_lvl = new int16_t[batchSize] { 0 };
-          int16_t* rep_lvl = new int16_t[batchSize] { 0 };
-
-          double* tmpArr = new double[batchSize] { 0 }; // this will not include NaN values
-          int64_t idx_adjust = 0; // adjustment for NaNs encountered so index into tmpArr is correct
-          (void)reader->ReadBatch(batchSize, def_lvl, rep_lvl, tmpArr, &values_read);
-          // copy values into our Chapel array
-          for (int64_t j = 0; j < batchSize; j++){
-            // when definition level is 0, mean Null which equated to NaN here unless 0 is the max meaning no null/nan values
-            if (max_def != 0 && def_lvl[j] == 0) {
-              chpl_ptr[i] = NAN;
-              idx_adjust++; // account for the NaN at the indexes after because tmpArr only stores values
-            } else {
-              chpl_ptr[i] = tmpArr[j-idx_adjust];
-            }
-            i++;
+          double value;
+          (void)reader->ReadBatch(1, &definition_level, nullptr, &value, &values_read);
+          // if values_read is 0, that means that it was a null value
+          if(values_read > 0) {
+            // this means it wasn't null
+            chpl_ptr[i] = value;
+          } else {
+            chpl_ptr[i] = NAN;
           }
+          i++;
         }
       }
     }
